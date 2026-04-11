@@ -1,6 +1,6 @@
 # 🏗️ Vitara AI — Architecture Document
 
-> **Authors:** Bagus
+> **Authors:** Bagus  
 > **Last Updated:** April 2026  
 > **Status:** Draft
 

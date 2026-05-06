@@ -29,7 +29,7 @@ token = getpass()
 repo_url = f"https://{token}@github.com/Vitara-hub/vitara-ai.git"
 
 !rm -rf vitara-ai
-!git clone $repo_url
+!git clone {repo_url}
 del token
 
 # ==========================================

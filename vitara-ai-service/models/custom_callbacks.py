@@ -24,7 +24,10 @@ class VitaraTrainingLogger(tf.keras.callbacks.Callback):
     def on_train_begin(self, logs=None):
         self.train_start_time = time.time()
         print("="*80)
-        print(f"🚀 [Vitara AI] Training Started at {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        # Set timezone to WIB (UTC+7)
+        wib_tz = datetime.timezone(datetime.timedelta(hours=7))
+        start_time_str = datetime.datetime.now(wib_tz).strftime('%Y-%m-%d %H:%M:%S WIB')
+        print(f"🚀 [Vitara AI] Training Started at {start_time_str}")
         print("="*80)
         
     def on_epoch_begin(self, epoch, logs=None):

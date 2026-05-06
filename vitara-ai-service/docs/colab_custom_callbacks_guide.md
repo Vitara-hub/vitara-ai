@@ -17,28 +17,28 @@ git push origin main
 Di sel pertama notebook Colab (misalnya `notebooks/vision_training.ipynb`), jalankan perintah berikut untuk mengambil kode terbaru dari repository.
 
 ```python
-# Menghapus folder lama jika notebook dijalankan ulang
-!rm -rf vitara-ai
-
-# Clone repository (Sesuaikan URL dengan repository)
-# Jika repository private, mungkin perlu mengatur personal access token (PAT)
-!git clone https://github.com/Vitara-hub/vitara-ai.git
-```
-
-## Langkah 3: Tambahkan Path ke `sys.path`
-
-Agar Python di Colab dapat melakukan import file dari folder `vitara-ai-service`, kita perlu mendaftarkan path tersebut ke dalam `sys.path`. Jalankan di sel berikutnya:
-
-```python
+# ==========================================
+# 1. SETUP & CLONE DARI GITHUB PRIVATE REPO
+# ==========================================
 import sys
 import os
+from getpass import getpass
 
-# Path ke root dari service backend di dalam repo yang sudah di-clone
+print("Masukkan GitHub Personal Access Token (PAT) Anda:")
+token = getpass()
+repo_url = f"https://{token}@github.com/Vitara-hub/vitara-ai.git"
+
+!rm -rf vitara-ai
+!git clone $repo_url
+del token
+
+# ==========================================
+# 2. SETUP PATH UNTUK CUSTOM MODULE
+# ==========================================
 service_path = '/content/vitara-ai/vitara-ai-service'
-
 if service_path not in sys.path:
     sys.path.append(service_path)
-    print("Berhasil menambahkan path vitara-ai-service ke sys.path")
+    print("✅ Berhasil menambahkan path vitara-ai-service ke sys.path")
 ```
 
 ## Langkah 4: Import dan Gunakan Callback

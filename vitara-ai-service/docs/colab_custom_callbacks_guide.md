@@ -49,7 +49,11 @@ Sekarang bisa mengimpor dan menggunakan `VitaraTrainingLogger` seperti modul Pyt
 
 ```python
 import tensorflow as tf
-from models.custom_callbacks import VitaraTrainingLogger
+import sys
+
+# Tambahkan path folder 'models' langsung ke sys.path
+sys.path.insert(0, '/content/vitara-ai/vitara-ai-service/models')
+from custom_callbacks import VitaraTrainingLogger
 
 # Inisialisasi logger (misal: print log setiap 1 epoch)
 v_logger = VitaraTrainingLogger(log_frequency=1)

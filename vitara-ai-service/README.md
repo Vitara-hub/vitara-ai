@@ -18,6 +18,7 @@ Repositori ini berisi layanan AI dan skrip _inference_ (inferensi) untuk proyek 
 - `models/`: Berisi model _machine learning_ yang telah dilatih (misalnya, model `.tflite`).
 - `services/`: Lapisan logika bisnis dan layanan AI inti.
 - `routers/`: Definisi rute API (untuk integrasi FastAPI).
+- `sample/`: Contoh data untuk pengujian inferensi.
 - `schemas/`: Skema validasi data serta _request/response_ (misalnya, menggunakan Pydantic).
 - `scripts/`: Skrip utilitas untuk pemrosesan data, pelatihan, atau evaluasi.
 - `docs/`: Dokumentasi tambahan.
@@ -28,13 +29,37 @@ Repositori ini berisi layanan AI dan skrip _inference_ (inferensi) untuk proyek 
 
 ## Pengaturan & Instalasi
 
-_(Instruksi Sementara)_
+### 1. Prasyarat
 
-1. Pastikan Python 3.9+ telah terinstal.
-2. Instal dependensi yang diperlukan:
-   ```bash
-   pip install -r requirements.txt
-   ```
+Pastikan Python 3.9+ telah terinstal di sistem Anda. Kami sangat merekomendasikan penggunaan **[uv](https://github.com/astral-sh/uv)** untuk manajemen paket yang jauh lebih cepat.
+
+### 2. Instalasi (Menggunakan `uv` - Direkomendasikan)
+
+```bash
+# Membuat virtual environment
+uv venv
+
+# Mengaktifkan virtual environment
+# macOS/Linux:
+source .venv/bin/activate
+# Windows:
+.venv\Scripts\activate
+```
+
+```bash
+# Instalasi dependensi
+uv pip install -r requirements.txt
+```
+
+### 3. Instalasi Standar (Tanpa `uv`)
+
+Jika Anda tidak menggunakan `uv`, gunakan perintah standar berikut:
+
+```bash
+python -m venv venv
+source venv/bin/activate  # atau venv\Scripts\activate di Windows
+pip install -r requirements.txt
+```
 
 ## Contoh Penggunaan
 
@@ -43,7 +68,11 @@ Untuk menjalankan skrip inferensi makanan (_food vision_) secara langsung melalu
 **Format Perintah:**
 
 ```bash
+# Jika virtual environment sudah aktif:
 python inference_food.py <path_ke_gambar> <path_ke_model_tflite> [path_ke_file_classes_txt]
+
+# Atau menggunakan uv run (otomatis menggunakan venv):
+uv run python inference_food.py <path_ke_gambar> <path_ke_model_tflite> [path_ke_file_classes_txt]
 ```
 
 **Keterangan Parameter:**

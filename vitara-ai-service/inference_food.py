@@ -1,9 +1,17 @@
 import sys
 import json
 import numpy as np
-import tensorflow as tf
 from PIL import Image
 import os
+
+# Gunakan ai_edge_litert (ringan, ARM64 native) jika tersedia,
+# fallback ke tensorflow jika tidak ada
+try:
+    from ai_edge_litert.interpreter import Interpreter
+    _USE_LITERT = True
+except ImportError:
+    import tensorflow as tf
+    _USE_LITERT = False
 
 def load_image(image_path):
     img = Image.open(image_path).convert('RGB')
@@ -32,7 +40,10 @@ def main():
         
     try:
         # Load TFLite model and allocate tensors.
-        interpreter = tf.lite.Interpreter(model_path=model_path)
+        if _USE_LITERT:
+            interpreter = Interpreter(model_path=model_path)
+        else:
+            interpreter = tf.lite.Interpreter(model_path=model_path)
         interpreter.allocate_tensors()
         
         input_details = interpreter.get_input_details()

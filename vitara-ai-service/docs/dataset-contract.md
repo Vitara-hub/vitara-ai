@@ -156,8 +156,8 @@ File tunggal berformat **CSV** dengan encoding **UTF-8**.
 | ------------------- | -------- | -------- | ----------------------- | -------------------------------------------- |
 | `id`                | `string` | ✅       | `"typ_001"`             | ID unik per sesi                             |
 | `user_id`           | `string` | ✅       | `"usr_abc"`             | ID anonim pengguna                           |
-| `timestamp`         | `string` | ✅       | `"2025-03-01T10:30:00"` | Waktu sesi, format ISO 8601                  |
 | `wpm`               | `float`  | ✅       | `58.3`                  | Kecepatan mengetik (kata per menit)          |
+| `typing_variance`   | `float`  | ✅       | `15.4`                  | Variansi waktu antar ketikan                 |
 | `backspace_rate`    | `float`  | ✅       | `0.12`                  | Rasio backspace (0.0 – 1.0)                  |
 | `inter_key_timings` | `string` | ✅       | `"120,98,145,87"`       | Interval antar tombol dalam ms, dipisah koma |
 | `stress_label`      | `float`  | ✅       | `0.74`                  | Label tingkat stres, **0.0 – 1.0**           |
@@ -165,9 +165,9 @@ File tunggal berformat **CSV** dengan encoding **UTF-8**.
 ### Contoh Isi File
 
 ```csv
-id,user_id,timestamp,wpm,backspace_rate,inter_key_timings,stress_label
-typ_001,usr_abc,2025-03-01T10:30:00,58.3,0.12,"120,98,145,87,203,110",0.74
-typ_002,usr_def,2025-03-01T11:00:00,42.1,0.25,"230,198,310,145,280",0.88
+id,user_id,wpm,typing_variance,backspace_rate,inter_key_timings,stress_label
+typ_001,usr_abc,58.3,15.4,0.12,"120,98,145,87,203,110",0.74
+typ_002,usr_def,42.1,32.8,0.25,"230,198,310,145,280",0.88
 ```
 
 ### Syarat Tambahan

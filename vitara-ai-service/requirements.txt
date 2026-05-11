@@ -8,3 +8,7 @@ tensorflow-metal; sys_platform == 'darwin' and platform_machine == 'arm64'
 tensorflow>=2.16.1; sys_platform != 'darwin' or platform_machine != 'arm64'
 ai-edge-litert
 setuptools<70.0.0
+fastapi
+uvicorn
+pydantic
+python-multipart

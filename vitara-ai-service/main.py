@@ -2,7 +2,7 @@
 from fastapi import FastAPI
 # pyrefly: ignore [missing-import]
 import uvicorn
-from routers import journal
+from routers import journal, food
 
 app = FastAPI(
     title="Vitara AI Service",
@@ -11,6 +11,7 @@ app = FastAPI(
 )
 
 app.include_router(journal.router)
+app.include_router(food.router)
 
 @app.get("/")
 async def root():

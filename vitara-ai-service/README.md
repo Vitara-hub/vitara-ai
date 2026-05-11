@@ -31,33 +31,34 @@ Repositori ini berisi layanan AI dan skrip _inference_ (inferensi) untuk proyek 
 
 ### 1. Prasyarat
 
-Pastikan Python 3.9+ telah terinstal di sistem Anda. Kami sangat merekomendasikan penggunaan **[uv](https://github.com/astral-sh/uv)** untuk manajemen paket yang jauh lebih cepat.
+- **Python 3.9+**: Pastikan Python telah terinstal.
+- **uv (Direkomendasikan)**: Kami sangat merekomendasikan penggunaan **[uv](https://github.com/astral-sh/uv)** untuk manajemen paket yang cepat.
+  - **Penting untuk pengguna macOS (Apple Silicon)**: Pastikan `uv` diinstal sebagai native ARM64. Jika Anda mengalami error terkait "AVX instructions", instal ulang `uv` dengan perintah:
+    `curl -LsSf https://astral.sh/uv/install.sh | sh`
 
-### 2. Instalasi (Menggunakan `uv` - Direkomendasikan)
+### 2. Instalasi (Menggunakan `uv`)
 
 ```bash
+# Untuk pengguna macOS, pastikan PATH sudah terupdate
+export PATH="$HOME/.local/bin:$PATH"
+
 # Membuat virtual environment
 uv venv
 
-# Mengaktifkan virtual environment
-# macOS/Linux:
-source .venv/bin/activate
-# Windows:
-.venv\Scripts\activate
-```
-
-```bash
 # Instalasi dependensi
+# (Otomatis mendeteksi platform: macOS Apple Silicon vs Windows/Linux)
 uv pip install -r requirements.txt
 ```
 
 ### 3. Instalasi Standar (Tanpa `uv`)
 
-Jika Anda tidak menggunakan `uv`, gunakan perintah standar berikut:
+Jika menggunakan `pip` standar, pastikan virtual environment Anda aktif:
 
 ```bash
 python -m venv venv
-source venv/bin/activate  # atau venv\Scripts\activate di Windows
+source venv/bin/activate  # macOS/Linux
+# atau: venv\Scripts\activate  # Windows
+
 pip install -r requirements.txt
 ```
 

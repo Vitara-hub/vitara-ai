@@ -113,13 +113,20 @@ class ModelValidator:
 
     def validate_vision(self):
         print_header("Food Vision Model Validation")
-        model_path = os.path.join(BASE_DIR, "models/vision_model")
+        model_dir = os.path.join(BASE_DIR, "models/vision_model")
         test_dir = os.path.join(DATA_DIR, "vision/processed/split/test")
         calorie_map_path = os.path.join(DATA_DIR, "vision/raw/calorie_map.csv")
         
-        if not os.path.exists(model_path):
-            print(f"{Colors.WARNING}Vision Model not found at {model_path}{Colors.ENDC}")
+        if not os.path.exists(model_dir):
+            print(f"{Colors.WARNING}Vision Model directory not found at {model_dir}{Colors.ENDC}")
             return
+        
+        # Find .tflite file in model directory
+        tflite_files = [f for f in os.listdir(model_dir) if f.endswith('.tflite')]
+        if not tflite_files:
+            print(f"{Colors.WARNING}No .tflite model found in {model_dir}{Colors.ENDC}")
+            return
+        tflite_path = os.path.join(model_dir, tflite_files[0])
         
         if not os.path.exists(test_dir):
             print(f"{Colors.WARNING}Vision Test directory not found at {test_dir}{Colors.ENDC}")
@@ -130,58 +137,76 @@ class ModelValidator:
             from tensorflow.keras.preprocessing.image import ImageDataGenerator
             # pyrefly: ignore [missing-import]
             from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
-            
-            print(f"Loading model: {model_path}")
-            model = tf.keras.models.load_model(model_path, custom_objects=CUSTOM_OBJECTS)
+            from PIL import Image
+
+            print(f"Loading TFLite model: {tflite_path}")
+            interpreter = tf.lite.Interpreter(model_path=tflite_path)
+            interpreter.allocate_tensors()
+            input_details = interpreter.get_input_details()
+            output_details = interpreter.get_output_details()
             
             print(f"Preparing test generator from: {test_dir}")
             test_datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
             test_generator = test_datagen.flow_from_directory(
                 test_dir,
                 target_size=(224, 224),
-                batch_size=32,
+                batch_size=1,   # TFLite interpreter runs one sample at a time
                 class_mode='sparse',
                 shuffle=False
             )
             
-            # Multi-output wrapper if needed (to include calories)
+            # Load calorie map if available
+            idx_to_calorie = None
             if os.path.exists(calorie_map_path):
                 print(f"Loading calorie map: {calorie_map_path}")
                 calorie_df = pd.read_csv(calorie_map_path)
                 class_to_calorie = dict(zip(calorie_df['class_name'], calorie_df['calories_per_100g']))
                 MAX_CALORIES = 1000.0
-                idx_to_calorie = {v: class_to_calorie.get(k, 0) / MAX_CALORIES for k, v in test_generator.class_indices.items()}
-                
-                class MultiOutputSequence(tf.keras.utils.Sequence):
-                    def __init__(self, generator, idx_to_calorie):
-                        self.generator = generator
-                        self.idx_to_calorie = idx_to_calorie
-                    def __len__(self): return len(self.generator)
-                    def __getitem__(self, index):
-                        x, y = self.generator[index]
-                        calories = np.array([self.idx_to_calorie[int(label)] for label in y])
-                        return x, {'classification_head': y, 'calorie_head': calories}
-                
-                test_ds = MultiOutputSequence(test_generator, idx_to_calorie)
-            else:
-                test_ds = test_generator
+                idx_to_calorie = {v: class_to_calorie.get(k, 0) / MAX_CALORIES
+                                  for k, v in test_generator.class_indices.items()}
 
-            print("Running model.evaluate()...")
-            results = model.evaluate(test_ds, verbose=0)
+            print(f"Running TFLite inference on {test_generator.samples} test images...")
+            correct = 0
+            calorie_abs_errors = []
             
-            # Extract metrics based on model output names
-            # results format: [loss, classification_loss, calorie_loss, classification_acc, calorie_mae]
-            if len(results) >= 5:
-                acc = results[3]
-                mae = results[4]
-            else:
-                acc = results[1] if len(results) > 1 else results[0]
-                mae = 0.0 # Fallback
+            for i in range(len(test_generator)):
+                x_batch, y_true_batch = test_generator[i]
+                
+                interpreter.set_tensor(input_details[0]['index'], x_batch.astype(np.float32))
+                interpreter.invoke()
+                
+                # Determine class vs calorie output by shape
+                out_0 = interpreter.get_tensor(output_details[0]['index'])
+                out_1 = interpreter.get_tensor(output_details[1]['index']) if len(output_details) > 1 else None
+                
+                if out_1 is not None:
+                    if output_details[0]['shape'][-1] == 1:
+                        calorie_pred, class_pred = out_0, out_1
+                    else:
+                        class_pred, calorie_pred = out_0, out_1
+                else:
+                    class_pred = out_0
+                    calorie_pred = None
+                
+                predicted_class = int(np.argmax(class_pred, axis=-1)[0])
+                true_class = int(y_true_batch[0])
+                if predicted_class == true_class:
+                    correct += 1
+                
+                if calorie_pred is not None and idx_to_calorie is not None:
+                    true_cal = idx_to_calorie.get(true_class, 0)
+                    pred_cal = float(calorie_pred[0][0])
+                    calorie_abs_errors.append(abs(pred_cal - true_cal))
             
+            acc = correct / test_generator.samples
             p1 = print_result("Classification Accuracy", acc, 0.85)
-            p2 = print_result("Calorie MAE (normalized)", mae, 0.02, condition='le')
             
-            self.results["Vision"] = p1 and p2
+            if calorie_abs_errors:
+                mae = float(np.mean(calorie_abs_errors))
+                p2 = print_result("Calorie MAE (normalized)", mae, 0.02, condition='le')
+                self.results["Vision"] = p1 and p2
+            else:
+                self.results["Vision"] = p1
             
         except Exception as e:
             print(f"{Colors.FAIL}Error validating Vision: {e}{Colors.ENDC}")

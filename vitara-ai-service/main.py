@@ -2,12 +2,23 @@
 from fastapi import FastAPI
 # pyrefly: ignore [missing-import]
 import uvicorn
+import os
+# pyrefly: ignore [missing-import]
+from dotenv import load_dotenv
 from routers import journal, food
+
+# Load environment variables dari file .env
+load_dotenv()
+
+APP_ENV = os.getenv("APP_ENV", "development")
+APP_PORT = int(os.getenv("APP_PORT", 8000))
 
 app = FastAPI(
     title="Vitara AI Service",
     description="API Service for Vitara AI Models (NLP, Vision)",
-    version="1.0.0"
+    version="1.0.0",
+    docs_url="/docs" if APP_ENV == "development" else None,
+    redoc_url="/redoc" if APP_ENV == "development" else None
 )
 
 app.include_router(journal.router)
@@ -15,7 +26,16 @@ app.include_router(food.router)
 
 @app.get("/")
 async def root():
-    return {"message": "Vitara AI Service is running"}
+    return {
+        "message": "Vitara AI Service is running",
+        "environment": APP_ENV
+    }
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    # Menjalankan server menggunakan port dari .env
+    uvicorn.run(
+        "main:app", 
+        host="0.0.0.0", 
+        port=APP_PORT, 
+        reload=True if APP_ENV == "development" else False
+    )

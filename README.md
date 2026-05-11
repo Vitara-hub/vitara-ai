@@ -1,43 +1,79 @@
-# Vitara AI Project
+# Vitara AI Project 🚀
 
-Ini adalah _repository_ utama untuk tim AI dalam proyek Vitara. Proyek ini memuat model dan layanan inferensi (API) yang bertanggung jawab untuk fitur cerdas pada aplikasi Vitara.
+Ini adalah _repository_ utama untuk tim AI dalam proyek **Vitara**. Proyek ini memuat model machine learning dan layanan inferensi (API) yang bertanggung jawab untuk fitur cerdas pada aplikasi Vitara.
 
 ## 📂 Struktur Repositori
 
-Secara garis besar, repositori ini dibagi menjadi beberapa bagian utama:
+Repositori ini menggunakan struktur modular untuk memisahkan antara riset (notebooks) dan produksi (service):
 
 ```text
 .
 ├── vitara-ai-service/      # Aplikasi utama (FastAPI) untuk melayani inferensi model AI
-├── notebooks/              # Jupyter Notebook yang digunakan untuk eksperimen, preprocessing, dan training model
-└── data/                   # (Tidak di-commit) Folder lokal untuk raw data, dataset, atau model checkpoint sementara
+├── notebooks/              # Jupyter Notebook untuk eksperimen, preprocessing, dan training model
+├── data/                   # (Ignored) Folder lokal untuk raw data, dataset, atau model checkpoint
+└── docs/                   # Dokumentasi arsitektur, API contract, dan postman collection
 ```
 
 ### 🧠 Modul AI (Microservices)
 
 Beberapa model yang dikembangkan dan di-serve pada servis API ini di antaranya:
 
-- **NLP (Journal Analysis)**: Model analisis sentimen/emosi berbasis jurnal teks pengguna.
-- **Vision (Food Detection)**: Model pengenalan makanan berbasis citra (gambar).
-- **Health Score**: Model multimodal untuk menghitung skor kesehatan berdasarkan input user.
-- **Sleep Pattern**: Model yang menganalisis dan memprediksi kualitas pola tidur.
-- **Typing Pattern**: Model yang mengkaji pola pengetikan user.
+- **NLP (Journal Analysis)**: Analisis emosi dan tingkat stres berbasis teks jurnal.
+- **Vision (Food Detection)**: Pengenalan jenis makanan dan estimasi kalori berbasis citra.
+- **Health Score**: Model multimodal untuk menghitung skor kesehatan holistik.
+- **Sleep Pattern**: Analisis kualitas dan pola tidur pengguna.
+- **Typing Pattern**: Deteksi tingkat stres melalui dinamika pola pengetikan.
+
+---
 
 ## 🚀 Cara Menjalankan (Local Development)
 
-_(Dokumentasi lebih lanjut ini akan terus di-update ke depannya)_
+Layanan API berada di dalam folder `vitara-ai-service`. Ikuti langkah berikut untuk menjalankan secara lokal:
 
-1. Masuk ke environment virtual pilihan (misalnya `venv` atau `conda`).
-2. Install dependensi (bila ada, jalankan pada folder `vitara-ai-service`):
+1. **Siapkan Environment** (Direkomendasikan menggunakan `uv` untuk performa lebih cepat):
+
    ```bash
    cd vitara-ai-service
-   pip install -r requirements.txt
+   uv venv
+   source .venv/bin/activate
    ```
-3. Copy isi dari `.env.example` ke dalam file `.env`:
+
+2. **Install Dependensi**:
+
+   ```bash
+   uv pip install -r requirements.txt
+   ```
+
+3. **Konfigurasi Environment Variable**:
+
    ```bash
    cp .env.example .env
    ```
-4. Jalankan _server_ development menggunakan `uvicorn`:
+
+4. **Jalankan API Server**:
    ```bash
+   python main.py
+   # atau
    uvicorn main:app --reload
    ```
+
+Setelah server berjalan, dokumentasi interaktif tersedia di:
+👉 **Swagger UI**: [http://localhost:8000/docs](http://localhost:8000/docs)
+
+---
+
+## 🧪 Testing & Verifikasi
+
+Kami menggunakan Postman untuk pengujian integrasi otomatis. Koleksi pengujian tersedia di:
+`vitara-ai-service/docs/postman_collection.json`
+
+Koleksi ini mencakup pengujian fungsionalitas dan validasi performa dengan ambang batas **latency ≤ 2 detik** per endpoint.
+
+---
+
+## 👥 Kontributor
+
+- **Bagus** (AI Engineer)
+- **Putri** (AI Engineer)
+- **Reihan** (Data Scientist)
+- **Hilmi** (Data Scientist)

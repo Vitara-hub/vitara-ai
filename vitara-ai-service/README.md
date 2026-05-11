@@ -110,15 +110,19 @@ Anda dapat menjalankan validasi untuk semua model sekaligus atau untuk model ter
 **1. Validasi Semua Model:**
 
 ```bash
+# Menggunakan uv (direkomendasikan):
+uv run python scripts/validate_models.py --all
+
+# Menggunakan python standar (pastikan venv aktif):
 python scripts/validate_models.py --all
 ```
 
 **2. Validasi Model Spesifik:**
 
-- **NLP:** `python scripts/validate_models.py --nlp`
-- **Vision:** `python scripts/validate_models.py --vision`
-- **Secondary (Typing & Sleep):** `python scripts/validate_models.py --secondary`
-- **Health Score:** `python scripts/validate_models.py --health`
+- **NLP:** `uv run python scripts/validate_models.py --nlp`
+- **Vision:** `uv run python scripts/validate_models.py --vision`
+- **Secondary (Typing & Sleep):** `uv run python scripts/validate_models.py --secondary`
+- **Health Score:** `uv run python scripts/validate_models.py --health`
 
 ### Hasil Validasi
 

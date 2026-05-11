@@ -131,4 +131,30 @@ Skrip akan memberikan output berupa status `PASS` atau `FAIL` untuk setiap metri
 
 ---
 
+## Monitoring dengan TensorBoard
+
+TensorBoard digunakan untuk memvisualisasikan metrik pelatihan model (loss, accuracy, dll.) yang tersimpan di direktori `logs/`.
+
+### Cara Menjalankan TensorBoard
+Jalankan perintah berikut di direktori `vitara-ai-service`:
+
+```bash
+# Menggunakan uv (direkomendasikan):
+uv run tensorboard --logdir logs/
+
+# Menggunakan python standar:
+tensorboard --logdir logs/
+```
+
+Setelah dijalankan, buka browser dan akses: **[http://localhost:6006](http://localhost:6006)**
+
+### Hal yang Perlu Di-review
+1. **Scalars Tab**: Perhatikan grafik `accuracy` dan `loss`.
+   - Bandingkan garis *Training* dan *Validation*.
+   - Waspadai **Overfitting**: Jika *training loss* terus turun tetapi *validation loss* justru naik.
+2. **Graphs Tab**: Untuk memeriksa struktur arsitektur model secara visual.
+3. **Histograms**: Untuk melihat distribusi bobot (_weights_) dan bias selama pelatihan.
+
+---
+
 _Catatan: Ini adalah README sementara dan akan terus diperbarui seiring dengan pengembangan dan penerapan layanan API ini._

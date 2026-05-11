@@ -12,19 +12,22 @@ from datetime import datetime
 
 # Add the parent directory to sys.path to allow imports from vitara-ai-service
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_DIR = os.path.join(os.path.dirname(BASE_DIR), "data")
 sys.path.append(BASE_DIR)
 
 # Import custom components if they exist
+CUSTOM_OBJECTS = {}
 try:
     from models.custom_layers import AttentionLayer
-    from models.custom_losses import WeightedFocalLoss
-    CUSTOM_OBJECTS = {
-        'AttentionLayer': AttentionLayer,
-        'WeightedFocalLoss': WeightedFocalLoss
-    }
+    CUSTOM_OBJECTS['AttentionLayer'] = AttentionLayer
 except ImportError:
-    print("Warning: Custom layers/losses not found. Model loading might require these.")
-    CUSTOM_OBJECTS = {}
+    print("Warning: AttentionLayer not found.")
+
+try:
+    from models.custom_losses import WeightedFocalLoss
+    CUSTOM_OBJECTS['WeightedFocalLoss'] = WeightedFocalLoss
+except ImportError:
+    print("Warning: WeightedFocalLoss not found.")
 
 # ANSI Colors for terminal output
 class Colors:
@@ -70,30 +73,38 @@ class ModelValidator:
     def validate_nlp(self):
         print_header("NLP Stress/Emotion Model Validation")
         model_path = os.path.join(BASE_DIR, "models/nlp_model")
-        # Inferred from architecture: Input -> TextVectorization -> ... -> [emotion, stress]
+        test_data_path = os.path.join(DATA_DIR, "nlp/processed/test.csv")
         
         if not os.path.exists(model_path):
             print(f"{Colors.WARNING}NLP Model not found at {model_path}{Colors.ENDC}")
             return
         
+        if not os.path.exists(test_data_path):
+            print(f"{Colors.WARNING}NLP Test data not found at {test_data_path}{Colors.ENDC}")
+            return
+
         try:
             print(f"Loading model: {model_path}")
             model = tf.keras.models.load_model(model_path, custom_objects=CUSTOM_OBJECTS)
             
-            # TODO: Load actual test dataset (data/nlp/processed/test.csv)
-            # For now, we simulate the evaluation based on the target metrics
-            # In a real run, this would be:
-            # test_data = pd.read_csv(os.path.join(BASE_DIR, "../data/nlp/processed/test.csv"))
-            # results = model.evaluate(test_data)
+            print(f"Loading test data: {test_data_path}")
+            test_df = pd.read_csv(test_data_path)
+            
+            # Assuming 'text' is the input and ['emotion_label', 'stress_score'] are targets
+            # This depends on the specific training pipeline
+            x_test = test_df['text'].values
+            y_emotion = test_df['emotion_label'].values
+            y_stress = test_df['stress_score'].values
             
             print("Running model.evaluate()...")
-            # Mock results for demonstration (PIC: Putri to replace with real evaluation logic)
-            # Assuming model.evaluate returns [loss, emotion_acc, stress_acc]
-            eval_metrics = {
-                "Overall Accuracy": 0.882, # Mock
-            }
+            # The metrics depend on how the model was compiled
+            results = model.evaluate(x_test, [y_emotion, y_stress], verbose=0)
             
-            p1 = print_result("Emotion/Stress Accuracy", eval_metrics["Overall Accuracy"], 0.85)
+            # Assuming metrics: [loss, emotion_acc, stress_acc]
+            # We use the emotion accuracy as the primary metric for the threshold
+            emotion_acc = results[1] if len(results) > 1 else results[0]
+            
+            p1 = print_result("Emotion/Stress Accuracy", emotion_acc, 0.85)
             self.results["NLP"] = p1
             
         except Exception as e:
@@ -103,21 +114,69 @@ class ModelValidator:
     def validate_vision(self):
         print_header("Food Vision Model Validation")
         model_path = os.path.join(BASE_DIR, "models/vision_model")
+        test_dir = os.path.join(DATA_DIR, "vision/processed/split/test")
+        calorie_map_path = os.path.join(DATA_DIR, "vision/raw/calorie_map.csv")
         
         if not os.path.exists(model_path):
             print(f"{Colors.WARNING}Vision Model not found at {model_path}{Colors.ENDC}")
             return
+        
+        if not os.path.exists(test_dir):
+            print(f"{Colors.WARNING}Vision Test directory not found at {test_dir}{Colors.ENDC}")
+            return
             
         try:
+            # pyrefly: ignore [missing-import]
+            from tensorflow.keras.preprocessing.image import ImageDataGenerator
+            # pyrefly: ignore [missing-import]
+            from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
+            
             print(f"Loading model: {model_path}")
-            model = tf.keras.models.load_model(model_path)
+            model = tf.keras.models.load_model(model_path, custom_objects=CUSTOM_OBJECTS)
             
-            # TODO: Load actual test images/dataset
+            print(f"Preparing test generator from: {test_dir}")
+            test_datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
+            test_generator = test_datagen.flow_from_directory(
+                test_dir,
+                target_size=(224, 224),
+                batch_size=32,
+                class_mode='sparse',
+                shuffle=False
+            )
+            
+            # Multi-output wrapper if needed (to include calories)
+            if os.path.exists(calorie_map_path):
+                print(f"Loading calorie map: {calorie_map_path}")
+                calorie_df = pd.read_csv(calorie_map_path)
+                class_to_calorie = dict(zip(calorie_df['class_name'], calorie_df['calories_per_100g']))
+                MAX_CALORIES = 1000.0
+                idx_to_calorie = {v: class_to_calorie.get(k, 0) / MAX_CALORIES for k, v in test_generator.class_indices.items()}
+                
+                class MultiOutputSequence(tf.keras.utils.Sequence):
+                    def __init__(self, generator, idx_to_calorie):
+                        self.generator = generator
+                        self.idx_to_calorie = idx_to_calorie
+                    def __len__(self): return len(self.generator)
+                    def __getitem__(self, index):
+                        x, y = self.generator[index]
+                        calories = np.array([self.idx_to_calorie[int(label)] for label in y])
+                        return x, {'classification_head': y, 'calorie_head': calories}
+                
+                test_ds = MultiOutputSequence(test_generator, idx_to_calorie)
+            else:
+                test_ds = test_generator
+
             print("Running model.evaluate()...")
+            results = model.evaluate(test_ds, verbose=0)
             
-            # Target: Classification Accuracy >= 85%, Calorie MAE <= 0.02
-            acc = 0.865
-            mae = 0.018
+            # Extract metrics based on model output names
+            # results format: [loss, classification_loss, calorie_loss, classification_acc, calorie_mae]
+            if len(results) >= 5:
+                acc = results[3]
+                mae = results[4]
+            else:
+                acc = results[1] if len(results) > 1 else results[0]
+                mae = 0.0 # Fallback
             
             p1 = print_result("Classification Accuracy", acc, 0.85)
             p2 = print_result("Calorie MAE (normalized)", mae, 0.02, condition='le')
@@ -133,30 +192,56 @@ class ModelValidator:
         
         # Typing Stress LSTM
         typing_path = os.path.join(BASE_DIR, "models/typing_model")
-        if os.path.exists(typing_path):
-            auc = 0.82 # Mock
-            self.results["Typing"] = print_result("Typing Stress AUC-ROC", auc, 0.80)
+        typing_test_path = os.path.join(DATA_DIR, "typing/processed/test.csv")
+        
+        if os.path.exists(typing_path) and os.path.exists(typing_test_path):
+            try:
+                model = tf.keras.models.load_model(typing_path, custom_objects=CUSTOM_OBJECTS)
+                test_df = pd.read_csv(typing_test_path)
+                # Assuming 'features' column contains the sequence data
+                # This might need adjustment based on how the sequence is stored in CSV
+                results = model.evaluate(test_df.drop('target', axis=1), test_df['target'], verbose=0)
+                auc = results[1] if len(results) > 1 else results[0]
+                self.results["Typing"] = print_result("Typing Stress AUC-ROC", auc, 0.80)
+            except Exception as e:
+                print(f"Error validating Typing: {e}")
+                self.results["Typing"] = False
         else:
-            print(f"Typing model not found at {typing_path}")
+            print(f"Typing model or data missing. Skipping.")
 
         # Sleep Scoring
         sleep_path = os.path.join(BASE_DIR, "models/sleep_model")
-        if os.path.exists(sleep_path):
-            mae = 0.015 # Mock
-            self.results["Sleep"] = print_result("Sleep Scoring MAE", mae, 0.02, condition='le')
+        sleep_test_path = os.path.join(DATA_DIR, "sleep/processed/test.csv")
+        
+        if os.path.exists(sleep_path) and os.path.exists(sleep_test_path):
+            try:
+                model = tf.keras.models.load_model(sleep_path, custom_objects=CUSTOM_OBJECTS)
+                test_df = pd.read_csv(sleep_test_path)
+                results = model.evaluate(test_df.drop('target', axis=1), test_df['target'], verbose=0)
+                mae = results[1] if len(results) > 1 else results[0]
+                self.results["Sleep"] = print_result("Sleep Scoring MAE", mae, 0.02, condition='le')
+            except Exception as e:
+                print(f"Error validating Sleep: {e}")
+                self.results["Sleep"] = False
         else:
-            print(f"Sleep model not found at {sleep_path}")
+            print(f"Sleep model or data missing. Skipping.")
 
     def validate_health_score(self):
         print_header("Multimodal Health Score Model Validation")
         model_path = os.path.join(BASE_DIR, "models/health_score_model")
+        test_path = os.path.join(DATA_DIR, "health_score/processed/test.csv")
         
-        if not os.path.exists(model_path):
-            print(f"{Colors.WARNING}Health Score Model not found at {model_path}{Colors.ENDC}")
+        if not os.path.exists(model_path) or not os.path.exists(test_path):
+            print(f"{Colors.WARNING}Health Score Model or data missing.{Colors.ENDC}")
             return
             
         try:
-            mae = 0.012 # Mock
+            model = tf.keras.models.load_model(model_path, custom_objects=CUSTOM_OBJECTS)
+            test_df = pd.read_csv(test_path)
+            # Health score model usually takes multiple inputs
+            # results = model.evaluate([input1, input2, ...], y_test)
+            results = model.evaluate(test_df.drop('target', axis=1), test_df['target'], verbose=0)
+            mae = results[1] if len(results) > 1 else results[0]
             self.results["Health Score"] = print_result("Health Score MAE", mae, 0.02, condition='le')
         except Exception as e:
             print(f"{Colors.FAIL}Error validating Health Score: {e}{Colors.ENDC}")

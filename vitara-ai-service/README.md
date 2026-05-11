@@ -89,4 +89,41 @@ python inference_food.py ./sample_food.jpg ./models/vision_model/vision_model.tf
 
 ---
 
+## Validasi Model
+
+Skrip `scripts/validate_models.py` digunakan untuk memvalidasi performa model AI (NLP, Vision, Sleep, Typing, dan Health Score) terhadap dataset pengujian (_test dataset_). Skrip ini membandingkan metrik performa aktual (seperti Akurasi atau MAE) dengan ambang batas (_threshold_) yang telah ditentukan.
+
+### Persyaratan Data
+
+Skrip ini mengasumsikan struktur data berikut di direktori root proyek:
+
+- `data/nlp/processed/test.csv`
+- `data/vision/processed/split/test/`
+- `data/typing/processed/test.csv`
+- `data/sleep/processed/test.csv`
+- `data/health_score/processed/test.csv`
+
+### Cara Menjalankan Validasi
+
+Anda dapat menjalankan validasi untuk semua model sekaligus atau untuk model tertentu saja.
+
+**1. Validasi Semua Model:**
+
+```bash
+python scripts/validate_models.py --all
+```
+
+**2. Validasi Model Spesifik:**
+
+- **NLP:** `python scripts/validate_models.py --nlp`
+- **Vision:** `python scripts/validate_models.py --vision`
+- **Secondary (Typing & Sleep):** `python scripts/validate_models.py --secondary`
+- **Health Score:** `python scripts/validate_models.py --health`
+
+### Hasil Validasi
+
+Skrip akan memberikan output berupa status `PASS` atau `FAIL` untuk setiap metrik. Jika ada model yang tidak memenuhi ambang batas, skrip akan mengembalikan kode keluar (_exit code_) 1.
+
+---
+
 _Catatan: Ini adalah README sementara dan akan terus diperbarui seiring dengan pengembangan dan penerapan layanan API ini._

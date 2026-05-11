@@ -1,12 +1,16 @@
 # pyrefly: ignore [missing-import]
 from fastapi import FastAPI
+# pyrefly: ignore [missing-import]
 import uvicorn
+from routers import journal
 
 app = FastAPI(
     title="Vitara AI Service",
     description="API Service for Vitara AI Models (NLP, Vision)",
     version="1.0.0"
 )
+
+app.include_router(journal.router)
 
 @app.get("/")
 async def root():

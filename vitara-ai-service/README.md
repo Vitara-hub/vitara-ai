@@ -23,11 +23,52 @@ Repositori ini berisi layanan AI dan skrip _inference_ (inferensi) untuk proyek 
 - `scripts/`: Skrip utilitas untuk pemrosesan data, pelatihan, atau evaluasi.
 - `docs/`: Dokumentasi tambahan.
 - `logs/`: Log aplikasi.
-- `main.py`: Titik masuk (_entry point_) utama untuk layanan API (saat ini sedang dalam pengembangan).
+- `main.py`: Titik masuk (_entry point_) utama untuk layanan API FastAPI.
 - `requirements.txt`: Dependensi proyek Python.
 - `Dockerfile`: Konfigurasi kontainerisasi (Docker).
 
-## Pengaturan & Instalasi
+## Menjalankan API Service
+
+Layanan API menggunakan **FastAPI** dan dapat dijalankan dengan **Uvicorn**.
+
+### 1. Menjalankan secara Lokal
+Pastikan virtual environment Anda sudah aktif, lalu jalankan:
+
+```bash
+# Menggunakan uvicorn secara langsung
+uvicorn main:app --reload
+
+# Atau menjalankan main.py
+python main.py
+```
+
+Setelah server berjalan, Anda dapat mengakses dokumentasi interaktif di:
+- **Swagger UI**: [http://localhost:8000/docs](http://localhost:8000/docs)
+- **ReDoc**: [http://localhost:8000/redoc](http://localhost:8000/redoc)
+
+### 2. Endpoints API (Batch 1)
+
+| Endpoint | Method | Deskripsi |
+| --- | --- | --- |
+| `/predict/journal` | POST | Menganalisis teks jurnal untuk mendeteksi emosi dan tingkat stres. |
+| `/predict/food` | POST | Mengklasifikasikan makanan dan mengestimasi kalori dari gambar. |
+
+---
+
+## Testing & Integrasi
+
+### Postman Collection
+Terdapat file koleksi Postman untuk mempermudah pengujian integrasi di:
+`docs/postman_collection.json`
+
+**Cara menggunakan:**
+1. Import file `docs/postman_collection.json` ke dalam aplikasi Postman.
+2. Pastikan server FastAPI sudah berjalan di `localhost:8000`.
+3. Jalankan request yang tersedia. Koleksi ini sudah dilengkapi dengan **Test Scripts** untuk memvalidasi respons dan memastikan **latency ≤ 2 detik**.
+
+---
+
+## Contoh Penggunaan CLI (Inference Standalone)
 
 ### 1. Prasyarat
 
@@ -62,7 +103,9 @@ source venv/bin/activate  # macOS/Linux
 pip install -r requirements.txt
 ```
 
-## Contoh Penggunaan
+---
+
+## Contoh Penggunaan CLI (Inference Standalone)
 
 Untuk menjalankan skrip inferensi makanan (_food vision_) secara langsung melalui terminal (_command line_), gunakan format berikut:
 

@@ -1,4 +1,4 @@
-/data
+#/data
 .DS_Store
 /vitara-ai-service/.venv
 /vitara-ai-service/venv

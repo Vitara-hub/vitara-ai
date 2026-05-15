@@ -114,7 +114,7 @@ class ModelValidator:
     def validate_vision(self):
         print_header("Food Vision Model Validation")
         model_dir = os.path.join(BASE_DIR, "models/vision_model")
-        test_dir = os.path.join(DATA_DIR, "vision/processed/split/test")
+        test_dir = os.path.join(DATA_DIR, "vision/processed/test")
         calorie_map_path = os.path.join(DATA_DIR, "vision/raw/calorie_map.csv")
         
         if not os.path.exists(model_dir):

@@ -157,7 +157,7 @@ File tunggal berformat **CSV** dengan encoding **UTF-8**.
 | `id`                | `string` | ✅       | `"typ_001"`             | ID unik per sesi                             |
 | `user_id`           | `string` | ✅       | `"usr_abc"`             | ID anonim pengguna                           |
 | `wpm`               | `float`  | ✅       | `58.3`                  | Kecepatan mengetik (kata per menit)          |
-| `typing_variance`   | `float`  | ✅       | `15.4`                  | Variansi waktu antar ketikan                 |
+| `typing_variance`   | `float`  | ✅       | `15.4`                  | Variansi (Standard Deviation) dalam ms       |
 | `backspace_rate`    | `float`  | ✅       | `0.12`                  | Rasio backspace (0.0 – 1.0)                  |
 | `inter_key_timings` | `string` | ✅       | `"120,98,145,87"`       | Interval antar tombol dalam ms, dipisah koma |
 | `stress_label`      | `float`  | ✅       | `0.74`                  | Label tingkat stres, **0.0 – 1.0**           |

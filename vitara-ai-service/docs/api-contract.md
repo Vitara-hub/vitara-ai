@@ -224,9 +224,9 @@ Menghitung skor kesehatan holistik pengguna berdasarkan output dari semua model.
 
 ---
 
-### 6. `POST /companion/chat`
+### 6. `POST /companion/chat` (Streaming)
 
-Mengirim pesan ke LLM Companion dan mendapatkan respons yang personal dan kontekstual.
+Mengirim pesan ke LLM Companion dan mendapatkan respons yang personal secara real-time melalui streaming.
 
 **Request Body:**
 
@@ -244,21 +244,35 @@ Mengirim pesan ke LLM Companion dan mendapatkan respons yang personal dan kontek
 
 **Response `200 OK`:**
 
-```json
-{
-  "response": "Sepertinya kamu cukup lelah hari ini. Berdasarkan data tidurmu, kamu hanya tidur 5.5 jam semalam. Yuk coba istirahat lebih cepat malam ini!",
-  "recommendations": [
-    "Tidur lebih awal, target 7–8 jam",
-    "Kurangi kafein setelah jam 3 sore",
-    "Coba teknik pernapasan 4-7-8 sebelum tidur"
-  ]
-}
-```
+- **Content-Type:** `text/event-stream`
 
-| Field | Type | Keterangan |
-|-------|------|-----------|
-| `response` | `string` | Respons teks dari LLM Companion |
-| `recommendations` | `string[]` | Daftar rekomendasi aksi untuk pengguna |
+**Stream Structure:**
+
+Respons dikirimkan menggunakan format Server-Sent Events (SSE). Setiap chunk diawali dengan `event: <nama_event>` dan `data: <json_payload>`.
+
+1.  **Event: `delta`** (Dikirim berkali-kali selama teks di-generate)
+    ```json
+    {
+      "token": "Sepertinya"
+    }
+    ```
+2.  **Event: `final`** (Dikirim satu kali di akhir stream)
+    ```json
+    {
+      "full_response": "Sepertinya kamu cukup lelah hari ini. Berdasarkan data tidurmu, kamu hanya tidur 5.5 jam semalam. Yuk coba istirahat lebih cepat malam ini!",
+      "recommendations": [
+        "Tidur lebih awal, target 7–8 jam",
+        "Kurangi kafein setelah jam 3 sore",
+        "Coba teknik pernapasan 4-7-8 sebelum tidur"
+      ]
+    }
+    ```
+
+| Event | Field | Type | Keterangan |
+|-------|-------|------|-----------|
+| `delta` | `token` | `string` | Potongan teks (token) yang dihasilkan oleh LLM |
+| `final` | `full_response` | `string` | Respons lengkap setelah selesai streaming |
+| `final` | `recommendations` | `string[]` | Daftar rekomendasi aksi berdasarkan konteks |
 
 ---
 

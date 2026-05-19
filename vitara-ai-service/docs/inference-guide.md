@@ -32,19 +32,27 @@ Model pendeteksi kalori dan jenis makanan berbasis citra digital menggunakan Ten
 ### Format Perintah
 
 ```bash
+# Jika virtual environment sudah aktif:
 python inference_food.py <path_ke_gambar> <path_ke_model_tflite> [path_ke_file_classes_txt]
+
+# Atau menggunakan uv run (otomatis mengaktifkan venv):
+uv run python inference_food.py <path_ke_gambar> <path_ke_model_tflite> [path_ke_file_classes_txt]
 ```
 
 ### Keterangan Parameter
 
-- `<path_ke_gambar>`: Lokasi file gambar makanan yang ingin dideklarasikan (contoh: `sample_food.jpg`).
+- `<path_ke_gambar>`: Lokasi file gambar makanan yang ingin dideklarasikan (contoh: `sample/food_vision/ayam_geprek.jpg`).
 - `<path_ke_model_tflite>`: Lokasi model `.tflite` (contoh: `models/vision_model/vision_model.tflite`).
 - `[path_ke_file_classes_txt]`: _(Opsional)_ Lokasi file teks berisi nama-nama label kelas makanan. Secara default mengacu pada `classes.txt`.
 
 ### Contoh Penggunaan
 
 ```bash
-python inference_food.py ./sample_food.jpg ./models/vision_model/vision_model.tflite ./models/vision_model/classes.txt
+# Menggunakan python standar (venv aktif):
+python inference_food.py sample/food_vision/ayam_geprek.jpg ./models/vision_model/vision_model.tflite ./models/vision_model/classes.txt
+
+# Menggunakan uv run:
+uv run python inference_food.py sample/food_vision/ayam_geprek.jpg ./models/vision_model/vision_model.tflite ./models/vision_model/classes.txt
 ```
 
 **Output (Stdout JSON):**
@@ -67,7 +75,11 @@ Model pendeteksi tingkat stres pengguna berdasarkan pola pengetikan tombol keybo
 ### Format Perintah
 
 ```bash
+# Jika virtual environment sudah aktif:
 python inference_typing.py '<json_payload>' [path_ke_model_h5]
+
+# Atau menggunakan uv run (otomatis mengaktifkan venv):
+uv run python inference_typing.py '<json_payload>' [path_ke_model_h5]
 ```
 
 ### Keterangan Parameter
@@ -80,21 +92,35 @@ python inference_typing.py '<json_payload>' [path_ke_model_h5]
 
 ### Pengujian Menggunakan Data Sampel
 
-Telah disediakan data sampel di folder `sample/typing/` untuk memudahkan verifikasi:
+Telah disediakan data sampel di folder `sample/typing/` untuk memudahkan verifikasi.
 
-**Contoh Menggunakan Data Sampel Rileks (Low Stress):**
+**1. Menggunakan Data Sampel Rileks (Low Stress):**
 ```bash
+# Menggunakan python standar (venv aktif):
 python inference_typing.py "$(cat sample/typing/normal_typing.json)"
+
+# Menggunakan uv run:
+uv run python inference_typing.py "$(cat sample/typing/normal_typing.json)"
 ```
 
-**Contoh Menggunakan Data Sampel Stres (High Stress):**
+**2. Menggunakan Data Sampel Stres (High Stress):**
 ```bash
+# Menggunakan python standar (venv aktif):
 python inference_typing.py "$(cat sample/typing/stress_typing.json)"
-```
 
-**Contoh Menggunakan Input Manual:**
+# Menggunakan uv run:
+uv run python inference_typing.py "$(cat sample/typing/stress_typing.json)"
+```
+**3. Menggunakan Input Kustom Manual (Opsional):**
+
+Jika Anda ingin melakukan pengujian mandiri menggunakan data kustom langsung tanpa membuat berkas JSON baru di folder `sample/`, Anda dapat menuliskan JSON string secara inline:
+
 ```bash
+# Menggunakan python standar (venv aktif):
 python inference_typing.py '{"wpm": 58.3, "backspace_rate": 0.12, "inter_key_timings": [120, 98, 145, 87, 203, 110]}'
+
+# Menggunakan uv run:
+uv run python inference_typing.py '{"wpm": 58.3, "backspace_rate": 0.12, "inter_key_timings": [120, 98, 145, 87, 203, 110]}'
 ```
 
 **Output (Stdout JSON):**

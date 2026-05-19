@@ -107,31 +107,14 @@ pip install -r requirements.txt
 
 ## Contoh Penggunaan CLI (Inference Standalone)
 
-Untuk menjalankan skrip inferensi makanan (_food vision_) secara langsung melalui terminal (_command line_), gunakan format berikut:
+Untuk memudahkan pengujian dan verifikasi model mandiri secara langsung melalui terminal (*command line*) tanpa menjalankan server web secara penuh, kami menyediakan skrip inferensi mandiri untuk masing-masing model (seperti Food Vision dan Typing Stress).
 
-**Format Perintah:**
-
-```bash
-# Jika virtual environment sudah aktif:
-python inference_food.py <path_ke_gambar> <path_ke_model_tflite> [path_ke_file_classes_txt]
-
-# Atau menggunakan uv run (otomatis menggunakan venv):
-uv run python inference_food.py <path_ke_gambar> <path_ke_model_tflite> [path_ke_file_classes_txt]
-```
-
-**Keterangan Parameter:**
-
-- `<path_ke_gambar>`: Lokasi file gambar makanan yang ingin diprediksi (contoh: `sample_food.jpg`).
-- `<path_ke_model_tflite>`: Lokasi model berformat `.tflite` yang sudah dilatih (contoh: `models/food_vision.tflite`).
-- `[path_ke_file_classes_txt]`: _(Opsional)_ Lokasi file teks berisi daftar label kelas makanan.
-
-**Contoh Menjalankan Skrip:**
-
-```bash
-python inference_food.py ./sample_food.jpg ./models/vision_model/vision_model.tflite ./models/vision_model/classes.txt
-```
+Panduan lengkap mengenai parameter input, format perintah, dan contoh penggunaan CLI untuk setiap model dapat diakses di:
+👉 **[Inference Standalone CLI Guide](docs/inference-guide.md)**
 
 ---
+
+
 
 ## Validasi Model
 

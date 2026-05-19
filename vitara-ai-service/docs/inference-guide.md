@@ -111,7 +111,17 @@ python inference_typing.py "$(cat sample/typing/stress_typing.json)"
 # Menggunakan uv run:
 uv run python inference_typing.py "$(cat sample/typing/stress_typing.json)"
 ```
-**3. Menggunakan Input Kustom Manual (Opsional):**
+
+**3. Menggunakan Data Sampel Stres Sedang (Moderate Stress):**
+```bash
+# Menggunakan python standar (venv aktif):
+python inference_typing.py "$(cat sample/typing/moderate_typing.json)"
+
+# Menggunakan uv run:
+uv run python inference_typing.py "$(cat sample/typing/moderate_typing.json)"
+```
+
+**4. Menggunakan Input Kustom Manual (Opsional):**
 
 Jika Anda ingin melakukan pengujian mandiri menggunakan data kustom langsung tanpa membuat berkas JSON baru di folder `sample/`, Anda dapat menuliskan JSON string secara inline:
 

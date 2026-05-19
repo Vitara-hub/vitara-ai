@@ -79,17 +79,17 @@ class TypingStressPredictor:
         self.model = tf.keras.models.load_model(model_path, custom_objects=CUSTOM_OBJECTS)
         
         # Robust fallback scaling parameters (Standardization: (x - mean) / std)
-        # Based on typing dataset contract distributions
-        self.seq_mean = 175.0
-        self.seq_std = 75.0
+        # Calibrated using actual training set distributions
+        self.seq_mean = 560.21773
+        self.seq_std = 4842.44977
         
-        self.static_means = np.array([55.0, 15.0, 0.15])  # wpm, typing_variance, backspace_rate
-        self.static_stds = np.array([10.0, 5.0, 0.08])
+        self.static_means = np.array([42.33, 0.206, 0.041])  # wpm, typing_variance, backspace_rate
+        self.static_stds = np.array([10.72, 0.455, 0.014])
 
     def preprocess(self, wpm, backspace_rate, inter_key_timings):
         """
         Preprocesses raw features to match model inputs:
-        1. Calculates typing variance from inter_key_timings.
+        1. Calculates typing variance from inter_key_timings (in seconds squared).
         2. Pads inter_key_timings sequence to max_seq_len.
         3. Scales sequence and static features using standardization.
         """
@@ -103,9 +103,9 @@ class TypingStressPredictor:
         if not inter_key_timings:
             inter_key_timings = [0.0]
 
-        # 2. Calculate typing variance dynamically (variance of timing intervals in ms)
+        # 2. Calculate typing variance dynamically (variance of timing intervals in seconds squared)
         if len(inter_key_timings) > 1:
-            typing_variance = float(np.var(inter_key_timings))
+            typing_variance = float(np.var(np.array(inter_key_timings) / 1000.0))
         else:
             typing_variance = 0.0
 

@@ -2,3 +2,8 @@
 .DS_Store
 /vitara-ai-service/.venv
 /vitara-ai-service/venv
+
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class

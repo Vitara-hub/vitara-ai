@@ -40,8 +40,11 @@ python scripts/validate_models.py --nlp
 # Hanya Vision
 python scripts/validate_models.py --vision
 
-# Model Sekunder (Typing & Sleep)
-python scripts/validate_models.py --secondary
+# Model Typing Stress
+python scripts/validate_models.py --typing
+
+# Model Sleep Scoring
+python scripts/validate_models.py --sleep
 
 # Health Score
 python scripts/validate_models.py --health

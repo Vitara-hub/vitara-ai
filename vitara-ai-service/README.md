@@ -148,7 +148,8 @@ python scripts/validate_models.py --all
 
 - **NLP:** `uv run python scripts/validate_models.py --nlp`
 - **Vision:** `uv run python scripts/validate_models.py --vision`
-- **Secondary (Typing & Sleep):** `uv run python scripts/validate_models.py --secondary`
+- **Typing:** `uv run python scripts/validate_models.py --typing`
+- **Sleep:** `uv run python scripts/validate_models.py --sleep`
 - **Health Score:** `uv run python scripts/validate_models.py --health`
 
 ### Hasil Validasi

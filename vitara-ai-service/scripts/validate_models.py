@@ -17,6 +17,52 @@ sys.path.append(BASE_DIR)
 
 # Import custom components if they exist
 CUSTOM_OBJECTS = {}
+
+# Custom compatibility layers for robust Keras 3 deserialization
+class NotEqual(tf.keras.layers.Layer):
+    def __init__(self, **kwargs):
+        super(NotEqual, self).__init__(**kwargs)
+    def __call__(self, *args, **kwargs):
+        tensor_input = args[0]
+        return super(NotEqual, self).__call__(tensor_input, **kwargs)
+    def call(self, x):
+        return tf.math.not_equal(x, 0.0)
+
+class Any(tf.keras.layers.Layer):
+    def __init__(self, axis=-1, keepdims=False, **kwargs):
+        super(Any, self).__init__(**kwargs)
+        self.axis = axis
+        self.keepdims = keepdims
+    def call(self, x):
+        return tf.reduce_any(x, axis=self.axis, keepdims=self.keepdims)
+    def get_config(self):
+        config = super(Any, self).get_config()
+        config.update({'axis': self.axis, 'keepdims': self.keepdims})
+        return config
+
+class PatchedDense(tf.keras.layers.Dense):
+    def __init__(self, *args, **kwargs):
+        kwargs.pop('quantization_config', None)
+        super(PatchedDense, self).__init__(*args, **kwargs)
+
+class PatchedLSTM(tf.keras.layers.LSTM):
+    def __init__(self, *args, **kwargs):
+        kwargs.pop('quantization_config', None)
+        super(PatchedLSTM, self).__init__(*args, **kwargs)
+
+class PatchedMasking(tf.keras.layers.Masking):
+    def __init__(self, *args, **kwargs):
+        kwargs.pop('quantization_config', None)
+        super(PatchedMasking, self).__init__(*args, **kwargs)
+
+CUSTOM_OBJECTS.update({
+    'NotEqual': NotEqual,
+    'Any': Any,
+    'Dense': PatchedDense,
+    'LSTM': PatchedLSTM,
+    'Masking': PatchedMasking
+})
+
 try:
     from models.custom_layers import AttentionLayer
     CUSTOM_OBJECTS['AttentionLayer'] = AttentionLayer
@@ -212,44 +258,59 @@ class ModelValidator:
             print(f"{Colors.FAIL}Error validating Vision: {e}{Colors.ENDC}")
             self.results["Vision"] = False
 
-    def validate_secondary_models(self):
-        print_header("Secondary Models Validation")
-        
-        # Typing Stress LSTM
+    def validate_typing(self):
+        print_header("Typing Stress Model Validation")
         typing_path = os.path.join(BASE_DIR, "models/typing_model")
+        model_file = os.path.join(typing_path, "typing_stress_lstm.h5")
+        if not os.path.exists(model_file):
+            model_file = typing_path
+            
         typing_test_path = os.path.join(DATA_DIR, "typing/processed/test.csv")
+        typing_test_dir = os.path.join(DATA_DIR, "typing/processed/test")
         
-        if os.path.exists(typing_path) and os.path.exists(typing_test_path):
+        if os.path.exists(model_file) and (os.path.exists(typing_test_path) or os.path.exists(typing_test_dir)):
             try:
-                model = tf.keras.models.load_model(typing_path, custom_objects=CUSTOM_OBJECTS)
-                test_df = pd.read_csv(typing_test_path)
-                # Assuming 'features' column contains the sequence data
-                # This might need adjustment based on how the sequence is stored in CSV
-                results = model.evaluate(test_df.drop('target', axis=1), test_df['target'], verbose=0)
+                print(f"Loading model: {model_file}")
+                model = tf.keras.models.load_model(model_file, custom_objects=CUSTOM_OBJECTS)
+                
+                if os.path.exists(typing_test_dir):
+                    print(f"Loading test numpy matrices from: {typing_test_dir}")
+                    X_seq = np.load(os.path.join(typing_test_dir, "X_seq.npy"))
+                    X_static = np.load(os.path.join(typing_test_dir, "X_static.npy"))
+                    y = np.load(os.path.join(typing_test_dir, "y.npy"))
+                    results = model.evaluate([X_seq, X_static], y, verbose=0)
+                else:
+                    print(f"Loading test data: {typing_test_path}")
+                    test_df = pd.read_csv(typing_test_path)
+                    results = model.evaluate(test_df.drop('target', axis=1), test_df['target'], verbose=0)
+                    
                 auc = results[1] if len(results) > 1 else results[0]
                 self.results["Typing"] = print_result("Typing Stress AUC-ROC", auc, 0.80)
             except Exception as e:
-                print(f"Error validating Typing: {e}")
+                print(f"{Colors.FAIL}Error validating Typing: {e}{Colors.ENDC}")
                 self.results["Typing"] = False
         else:
-            print(f"Typing model or data missing. Skipping.")
+            print(f"{Colors.WARNING}Typing model or data missing. Skipping.{Colors.ENDC}")
 
-        # Sleep Scoring
+    def validate_sleep(self):
+        print_header("Sleep Scoring Model Validation")
         sleep_path = os.path.join(BASE_DIR, "models/sleep_model")
         sleep_test_path = os.path.join(DATA_DIR, "sleep/processed/test.csv")
         
         if os.path.exists(sleep_path) and os.path.exists(sleep_test_path):
             try:
+                print(f"Loading model: {sleep_path}")
                 model = tf.keras.models.load_model(sleep_path, custom_objects=CUSTOM_OBJECTS)
+                print(f"Loading test data: {sleep_test_path}")
                 test_df = pd.read_csv(sleep_test_path)
                 results = model.evaluate(test_df.drop('target', axis=1), test_df['target'], verbose=0)
                 mae = results[1] if len(results) > 1 else results[0]
                 self.results["Sleep"] = print_result("Sleep Scoring MAE", mae, 0.02, condition='le')
             except Exception as e:
-                print(f"Error validating Sleep: {e}")
+                print(f"{Colors.FAIL}Error validating Sleep: {e}{Colors.ENDC}")
                 self.results["Sleep"] = False
         else:
-            print(f"Sleep model or data missing. Skipping.")
+            print(f"{Colors.WARNING}Sleep model or data missing. Skipping.{Colors.ENDC}")
 
     def validate_health_score(self):
         print_header("Multimodal Health Score Model Validation")
@@ -291,7 +352,8 @@ def main():
     parser = argparse.ArgumentParser(description="Vitara AI Model Validation Script")
     parser.add_argument("--nlp", action="store_true", help="Validate NLP model")
     parser.add_argument("--vision", action="store_true", help="Validate Vision model")
-    parser.add_argument("--secondary", action="store_true", help="Validate Typing & Sleep models")
+    parser.add_argument("--typing", action="store_true", help="Validate Typing model")
+    parser.add_argument("--sleep", action="store_true", help="Validate Sleep model")
     parser.add_argument("--health", action="store_true", help="Validate Health Score model")
     parser.add_argument("--all", action="store_true", help="Validate all models")
     
@@ -303,12 +365,14 @@ def main():
         validator.validate_nlp()
     if args.all or args.vision:
         validator.validate_vision()
-    if args.all or args.secondary:
-        validator.validate_secondary_models()
+    if args.all or args.typing:
+        validator.validate_typing()
+    if args.all or args.sleep:
+        validator.validate_sleep()
     if args.all or args.health:
         validator.validate_health_score()
         
-    if not (args.all or args.nlp or args.vision or args.secondary or args.health):
+    if not (args.all or args.nlp or args.vision or args.typing or args.sleep or args.health):
         print(f"{Colors.WARNING}No models specified for validation. Use --all or specific model flags.{Colors.ENDC}")
         parser.print_help()
         return

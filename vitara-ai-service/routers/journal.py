@@ -116,6 +116,13 @@ async def predict_journal(request: JournalRequest):
             topics=extracted_topics
         )
         if request.user_id:
+            # Save raw journal text for semantic similarity matching
+            memory_store.add_memory(
+                user_id=request.user_id,
+                text=f"Pengguna menulis jurnal: \"{request.text}\"",
+                mem_type="user_journal"
+            )
+            # Save NLP analysis result as structured health context
             memory_store.add_memory(
                 user_id=request.user_id,
                 text=f"Analisis jurnal: Emosi terdeteksi adalah '{response_data.emotion}' dengan tingkat stres sebesar {response_data.stress_level:.2f}. Topik jurnal: {', '.join(response_data.topics)}. (Model ML Non-aktif)",
@@ -134,6 +141,13 @@ async def predict_journal(request: JournalRequest):
             topics=extracted_topics
         )
         if request.user_id:
+            # Save raw journal text for semantic similarity matching
+            memory_store.add_memory(
+                user_id=request.user_id,
+                text=f"Pengguna menulis jurnal: \"{request.text}\"",
+                mem_type="user_journal"
+            )
+            # Save NLP analysis result as structured health context
             memory_store.add_memory(
                 user_id=request.user_id,
                 text=f"Analisis jurnal: Emosi terdeteksi adalah '{response_data.emotion}' dengan tingkat stres sebesar {response_data.stress_level:.2f}. Topik jurnal: {', '.join(response_data.topics)}.",

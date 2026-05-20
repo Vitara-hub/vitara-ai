@@ -42,9 +42,14 @@ class LLMCompanionService:
         5. Generate 2 to 4 health recommendations in a fast second call yielding 'final' event.
         6. Store new message and response into ChromaDB.
         """
-        # Step 1: Retrieve memories from ChromaDB using user_message as query
+        # Step 1: Retrieve diverse memories from ChromaDB (per memory type)
         query_text = ContextBuilder.construct_query_text(user_message)
-        raw_memories = memory_store.retrieve_memories(user_id=user_id, query_text=query_text, limit=4)
+        raw_memories = memory_store.retrieve_diverse_memories(
+            user_id=user_id,
+            query_text=query_text,
+            per_type_limit=2,
+            mem_types=["user_journal", "nlp_prediction", "health_score", "user_chat", "companion_response"]
+        )
         
         # Step 2: Stitch memories into a cohesive context string
         context_str = ContextBuilder.stitch_memories(raw_memories)

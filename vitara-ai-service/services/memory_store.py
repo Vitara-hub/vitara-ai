@@ -98,6 +98,71 @@ class MemoryStore:
         except Exception as e:
             print(f"⚠️ [MemoryStore] Error querying memories from ChromaDB: {e}")
             return []
+
+    def retrieve_diverse_memories(
+        self,
+        user_id: str,
+        query_text: str,
+        per_type_limit: int = 2,
+        mem_types: List[str] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Retrieves memories per memory type to ensure diverse context representation.
+        For each type (e.g. nlp_prediction, user_chat, companion_response, health_score),
+        it fetches the top `per_type_limit` most semantically similar results.
+        This prevents high-frequency types (like user_chat) from monopolizing the context.
+        
+        Falls back to standard retrieve_memories if per-type queries fail.
+        """
+        if not query_text or not query_text.strip():
+            return []
+
+        if mem_types is None:
+            mem_types = ["nlp_prediction", "health_score", "user_chat", "companion_response"]
+
+        all_memories: Dict[str, Dict[str, Any]] = {}  # keyed by id to avoid duplicates
+
+        for mem_type in mem_types:
+            try:
+                results = self.collection.query(
+                    query_texts=[query_text],
+                    n_results=per_type_limit,
+                    where={"$and": [{"user_id": user_id}, {"type": mem_type}]}
+                )
+
+                if not results or "documents" not in results or not results["documents"]:
+                    continue
+
+                documents = results["documents"][0]
+                metadatas = results.get("metadatas", [[]])[0]
+                ids = results.get("ids", [[]])[0]
+                distances = results.get("distances", [[]])[0] if "distances" in results else None
+
+                for idx in range(len(documents)):
+                    mem_id = ids[idx]
+                    if mem_id not in all_memories:
+                        memory_item = {
+                            "id": mem_id,
+                            "document": documents[idx],
+                            "metadata": metadatas[idx] if idx < len(metadatas) else {},
+                        }
+                        if distances is not None and idx < len(distances):
+                            memory_item["distance"] = distances[idx]
+                        all_memories[mem_id] = memory_item
+
+            except Exception as e:
+                # If a type has no entries yet, ChromaDB may throw — silently skip
+                print(f"⚠️ [MemoryStore] Skipping type '{mem_type}' in diverse retrieval: {e}")
+                continue
+
+        # Sort final list chronologically by timestamp
+        unique_memories = list(all_memories.values())
+        try:
+            unique_memories.sort(key=lambda x: x.get("metadata", {}).get("timestamp", ""))
+        except Exception:
+            pass
+
+        return unique_memories
             
     def delete_user_memories(self, user_id: str):
         """

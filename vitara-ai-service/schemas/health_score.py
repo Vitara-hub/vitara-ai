@@ -23,10 +23,10 @@ class HealthScoreRequest(BaseModel):
     typing_result: Optional[TypingResult] = Field(None, description="Output from typing stress detection")
 
 class HealthScoreBreakdown(BaseModel):
-    mood: int = Field(..., ge=0, le=100, description="Mood sub-score, scale 0 - 100")
-    nutrition: int = Field(..., ge=0, le=100, description="Nutrition sub-score, scale 0 - 100")
-    stress: int = Field(..., ge=0, le=100, description="Stress sub-score (100 means no stress), scale 0 - 100")
-    sleep: int = Field(..., ge=0, le=100, description="Sleep sub-score, scale 0 - 100")
+    mood: Optional[int] = Field(None, ge=0, le=100, description="Mood sub-score, scale 0 - 100")
+    nutrition: Optional[int] = Field(None, ge=0, le=100, description="Nutrition sub-score, scale 0 - 100")
+    stress: Optional[int] = Field(None, ge=0, le=100, description="Stress sub-score (100 means no stress), scale 0 - 100")
+    sleep: Optional[int] = Field(None, ge=0, le=100, description="Sleep sub-score, scale 0 - 100")
 
 class HealthScoreResponse(BaseModel):
     health_score: int = Field(..., ge=0, le=100, description="Overall consolidated health score, scale 0 - 100")

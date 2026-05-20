@@ -44,32 +44,67 @@ class HealthScoreService:
     def calculate_health_score(cls, request: HealthScoreRequest) -> HealthScoreResponse:
         """
         Calculates sub-scores and overall health score using rule-based formulas.
+        Supports partial data with dynamic weighting.
         """
+        scores = {}
+        weights = {}
+
         # 1. Stress Score (0-100) - Higher is less stressed (100 = tidak stres)
-        avg_stress_level = (request.nlp_result.stress_level + request.typing_result.stress_score) / 2.0
-        stress_score = max(0, min(100, int(round((1.0 - avg_stress_level) * 100))))
-        
-        # 2. Sleep Score (0-100) - Direct from sleep model quality score
-        sleep_score = max(0, min(100, request.sleep_result.quality_score))
-        
-        # 3. Mood Score (0-100) - Based on emotional classification mapping
-        mood_score = cls.calculate_mood_score(request.nlp_result.emotion)
-        
-        # 4. Nutrition Score (0-100) - Evaluated from estimated meal calories
-        nutrition_score = cls.calculate_nutrition_score(request.food_result.estimated_calories)
-        
-        # 5. Overall Health Score (0-100) - Weighted average
-        # Stress: 30%, Sleep: 30%, Mood: 20%, Nutrition: 20%
-        raw_overall = (stress_score * 0.3) + (sleep_score * 0.3) + (mood_score * 0.2) + (nutrition_score * 0.2)
-        overall_score = max(0, min(100, int(round(raw_overall))))
-        
+        # Bounded by NLP stress_level and typing stress_score if available
+        stress_elements = []
+        if request.nlp_result is not None:
+            stress_elements.append(request.nlp_result.stress_level)
+        if request.typing_result is not None:
+            stress_elements.append(request.typing_result.stress_score)
+
+        if stress_elements:
+            avg_stress_level = sum(stress_elements) / len(stress_elements)
+            stress_score = max(0, min(100, int(round((1.0 - avg_stress_level) * 100))))
+            scores['stress'] = stress_score
+            weights['stress'] = 0.30
+        else:
+            stress_score = None
+
+        # 2. Sleep Score (0-100)
+        if request.sleep_result is not None:
+            sleep_score = max(0, min(100, request.sleep_result.quality_score))
+            scores['sleep'] = sleep_score
+            weights['sleep'] = 0.30
+        else:
+            sleep_score = None
+
+        # 3. Mood Score (0-100)
+        if request.nlp_result is not None:
+            mood_score = cls.calculate_mood_score(request.nlp_result.emotion)
+            scores['mood'] = mood_score
+            weights['mood'] = 0.20
+        else:
+            mood_score = None
+
+        # 4. Nutrition Score (0-100)
+        if request.food_result is not None:
+            nutrition_score = cls.calculate_nutrition_score(request.food_result.estimated_calories)
+            scores['nutrition'] = nutrition_score
+            weights['nutrition'] = 0.20
+        else:
+            nutrition_score = None
+
+        # 5. Overall Health Score (0-100)
+        if scores:
+            total_weight = sum(weights.values())
+            raw_overall = sum(scores[key] * (weights[key] / total_weight) for key in scores)
+            overall_score = max(0, min(100, int(round(raw_overall))))
+        else:
+            # Fallback jika tidak ada data sama sekali (Default Netral/60)
+            overall_score = 60
+
         breakdown = HealthScoreBreakdown(
             mood=mood_score,
             nutrition=nutrition_score,
             stress=stress_score,
             sleep=sleep_score
         )
-        
+
         return HealthScoreResponse(
             health_score=overall_score,
             breakdown=breakdown

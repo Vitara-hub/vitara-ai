@@ -5,7 +5,7 @@ import uvicorn
 import os
 # pyrefly: ignore [missing-import]
 from dotenv import load_dotenv
-from routers import journal, food, health_score, companion
+from routers import journal, food, health_score, companion, sleep, typing
 
 # Load environment variables dari file .env
 load_dotenv()
@@ -25,7 +25,7 @@ else:
 app = FastAPI(
 
     title="Vitara AI Service",
-    description="API Service for Vitara AI Models (NLP, Vision, LLM)",
+    description="API Service for Vitara AI Models (NLP, Vision, Typing, Sleep, LLM)",
     version="1.0.0",
     docs_url="/docs" if APP_ENV == "development" else None,
     redoc_url="/redoc" if APP_ENV == "development" else None
@@ -35,6 +35,8 @@ app.include_router(journal.router)
 app.include_router(food.router)
 app.include_router(health_score.router)
 app.include_router(companion.router)
+app.include_router(sleep.router)
+app.include_router(typing.router)
 
 
 @app.get("/")

@@ -112,7 +112,8 @@ Menghitung skor kualitas tidur pengguna berdasarkan data tidur.
   "bedtime": "00:30",
   "wake_time": "06:00",
   "interruptions": 3,
-  "sleep_debt_hours": 2.0
+  "sleep_debt_hours": 2.0,
+  "user_id": "usr_abc123"
 }
 ```
 
@@ -123,6 +124,7 @@ Menghitung skor kualitas tidur pengguna berdasarkan data tidur.
 | `wake_time` | `string` | ✅ | Waktu bangun, format `HH:MM` |
 | `interruptions` | `integer` | ✅ | Jumlah kali terbangun di malam hari |
 | `sleep_debt_hours` | `float` | ❌ | Akumulasi utang tidur dalam jam |
+| `user_id` | `string` | ❌ | ID unik pengguna untuk menyimpan riwayat kesehatan RAG. |
 
 **Response `200 OK`:**
 
@@ -148,7 +150,8 @@ Mendeteksi tingkat stres berdasarkan pola pengetikan (keystroke dynamics).
 {
   "wpm": 58.3,
   "backspace_rate": 0.12,
-  "inter_key_timings": [120, 98, 145, 87, 203, 110]
+  "inter_key_timings": [120, 98, 145, 87, 203, 110],
+  "user_id": "usr_abc123"
 }
 ```
 
@@ -157,6 +160,7 @@ Mendeteksi tingkat stres berdasarkan pola pengetikan (keystroke dynamics).
 | `wpm` | `float` | ✅ | Kecepatan mengetik dalam kata per menit |
 | `backspace_rate` | `float` | ✅ | Rasio tombol backspace terhadap total penekanan tombol (0.0 – 1.0) |
 | `inter_key_timings` | `float[]` | ✅ | Array interval waktu antar tombol dalam milidetik |
+| `user_id` | `string` | ❌ | ID unik pengguna untuk menyimpan riwayat kesehatan RAG. |
 
 **Response `200 OK`:**
 

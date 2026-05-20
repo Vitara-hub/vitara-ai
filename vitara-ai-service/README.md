@@ -200,4 +200,18 @@ python scripts/test_companion.py
 - **Memory Store (ChromaDB)**: Memvalidasi penambahan data memori ke basis data vektor ChromaDB, pencarian semantik (retrieval), dan pembersihan data uji.
 - **LLM Companion Service**: Menguji deteksi `GEMINI_API_KEY` dari file `.env`, memvisualisasikan streaming respons token demi token (SSE) secara real-time di terminal, serta memverifikasi data rekomendasi tindakan kesehatan terstruktur di akhir alur.
 
+### 3. Skrip Pembersihan ChromaDB (`scripts/clear_memories.py`)
+Skrip ini digunakan untuk membersihkan atau mereset seluruh data memori percakapan pengguna yang tersimpan di dalam collection `user_memories` di basis data vektor ChromaDB.
+
+**Cara Menjalankan:**
+```bash
+# Menggunakan uv (direkomendasikan):
+uv run python scripts/clear_memories.py
+
+# Menggunakan python standar (pastikan virtual environment aktif):
+python scripts/clear_memories.py
+```
+
+_Catatan: Jika Anda ingin melakukan **hard reset** database total secara fisik, Anda dapat menghapus folder penyimpanannya dengan menjalankan perintah `rm -rf data/chroma_db` di terminal._
+
 _Catatan: Ini adalah README sementara dan akan terus diperbarui seiring dengan pengembangan dan penerapan layanan API ini._

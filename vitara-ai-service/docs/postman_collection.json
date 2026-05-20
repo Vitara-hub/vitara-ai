@@ -111,6 +111,62 @@
 				}
 			},
 			"response": []
+		},
+		{
+			"name": "Health Score",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Response time is less than 2000ms\", function () {",
+							"    pm.expect(pm.response.responseTime).to.be.below(2000);",
+							"});",
+							"",
+							"pm.test(\"Verify Health Score Response Format\", function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property('health_score');",
+							"    pm.expect(jsonData).to.have.property('breakdown');",
+							"    pm.expect(jsonData.breakdown).to.have.property('mood');",
+							"    pm.expect(jsonData.breakdown).to.have.property('nutrition');",
+							"    pm.expect(jsonData.breakdown).to.have.property('stress');",
+							"    pm.expect(jsonData.breakdown).to.have.property('sleep');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"user_id\": \"usr_abc123\",\n    \"nlp_result\": {\n        \"emotion\": \"anxious\",\n        \"stress_level\": 0.82\n    },\n    \"food_result\": {\n        \"estimated_calories\": 520\n    },\n    \"sleep_result\": {\n        \"quality_score\": 72\n    },\n    \"typing_result\": {\n        \"stress_score\": 0.74\n    }\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8000/health/score",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"health",
+						"score"
+					]
+				}
+			},
+			"response": []
 		}
 	]
 }

@@ -1,4 +1,6 @@
 # pyrefly: ignore [missing-import]
+from datetime import datetime
+# pyrefly: ignore [missing-import]
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from schemas.health_score import HealthScoreRequest, HealthScoreResponse
 from services.health_score_service import HealthScoreService
@@ -9,6 +11,7 @@ router = APIRouter(prefix="/health", tags=["Health Score"])
 def sync_health_to_rag(user_id: str, response: HealthScoreResponse):
     """
     Helper function to sync calculated health score to ChromaDB as a background task.
+    Uses a deterministic daily ID to guarantee idempotency.
     """
     try:
         mood_str = f"Mood={response.breakdown.mood}/100" if response.breakdown.mood is not None else "Mood=Belum tercatat"
@@ -21,10 +24,14 @@ def sync_health_to_rag(user_id: str, response: HealthScoreResponse):
             f"Rincian dimensi kesehatan: {mood_str}, {nutrition_str}, {stress_str}, {sleep_str}."
         )
 
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        deterministic_id = f"health_score_{user_id}_{current_date}"
+
         memory_store.add_memory(
             user_id=user_id,
             text=memory_text,
-            mem_type="health_score"
+            mem_type="health_score",
+            doc_id=deterministic_id
         )
     except Exception as e:
         # Menghindari crash response utama jika ChromaDB/Sync bermasalah

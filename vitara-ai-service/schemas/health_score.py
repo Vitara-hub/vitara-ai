@@ -1,6 +1,6 @@
 # pyrefly: ignore [missing-import]
 from pydantic import BaseModel, Field
-from typing import Dict
+from typing import Dict, Optional
 
 class NLPResult(BaseModel):
     emotion: str = Field(..., description="Dominant emotion detected (e.g., happy, sad, anxious, neutral)")
@@ -17,10 +17,10 @@ class TypingResult(BaseModel):
 
 class HealthScoreRequest(BaseModel):
     user_id: str = Field(..., description="Unique user identifier")
-    nlp_result: NLPResult = Field(..., description="Output from NLP journal analysis")
-    food_result: FoodResult = Field(..., description="Output from food vision estimation")
-    sleep_result: SleepResult = Field(..., description="Output from sleep quality assessment")
-    typing_result: TypingResult = Field(..., description="Output from typing stress detection")
+    nlp_result: Optional[NLPResult] = Field(None, description="Output from NLP journal analysis")
+    food_result: Optional[FoodResult] = Field(None, description="Output from food vision estimation")
+    sleep_result: Optional[SleepResult] = Field(None, description="Output from sleep quality assessment")
+    typing_result: Optional[TypingResult] = Field(None, description="Output from typing stress detection")
 
 class HealthScoreBreakdown(BaseModel):
     mood: int = Field(..., ge=0, le=100, description="Mood sub-score, scale 0 - 100")

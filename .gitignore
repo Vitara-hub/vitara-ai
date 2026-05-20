@@ -7,3 +7,10 @@
 __pycache__/
 *.py[cod]
 *$py.class
+
+# Environment Variables & Local Data
+.env
+vitara-ai-service/.env
+vitara-ai-service/data/
+/data/
+

@@ -55,7 +55,7 @@ Input (raw text)
 | `tf.GradientTape` loop | Custom Training Loop |
 
 **Input:** Raw text string  
-**Output:**
+**Output (API Response):**
 
 ```json
 {
@@ -64,6 +64,11 @@ Input (raw text)
   "topics": ["deadline", "kerja"]
 }
 ```
+
+> 📌 **Catatan Output:** 
+> *   Nilai `emotion` dan `stress_level` diprediksi secara langsung oleh model NLP (BiLSTM).
+> *   Nilai `topics` diekstraksi di tingkat backend (*post-processing* menggunakan rule-based/keyword matching atau LLM) untuk mendukung konteks RAG pada LLM Companion. Oleh karena itu, data ini tidak memerlukan pelabelan pada dataset training model.
+
 
 ---
 

@@ -6,7 +6,9 @@ from typing import Dict, Any, List
 # pyrefly: ignore [missing-import]
 from pydantic import BaseModel, Field
 # pyrefly: ignore [missing-import]
-import google.generativeai as genai
+from google import genai
+# pyrefly: ignore [missing-import]
+from google.genai import types
 
 from services.memory_store import MemoryStore
 from services.context_builder import ContextBuilder
@@ -26,13 +28,9 @@ class LLMCompanionService:
         self.is_configured = self.api_key is not None and self.api_key != "your_gemini_api_key_here"
         
         if self.is_configured:
-            genai.configure(api_key=self.api_key)
-            self.model = genai.GenerativeModel(
-                model_name="gemini-2.5-flash",
-                system_instruction=SYSTEM_INSTRUCTION
-            )
+            self.client = genai.Client(api_key=self.api_key)
         else:
-            self.model = None
+            self.client = None
 
     async def chat_stream(self, user_id: str, user_message: str):
         """
@@ -55,7 +53,7 @@ class LLMCompanionService:
         prompt = get_user_chat_prompt(user_message=user_message, context_str=context_str)
         
         # Step 4: Query Gemini API
-        if not self.is_configured or not self.model:
+        if not self.is_configured or not self.client:
             # Emulated local fallback mode for testing if API Key is not configured
             fallback_text = f"[Demo Mode] Halo! Saya menerima pesanmu: '{user_message}'. Saat ini GEMINI_API_KEY belum dikonfigurasi di file .env. Silakan tambahkan API key Anda untuk mendapatkan respons cerdas dari Gemini."
             fallback_recs = [
@@ -81,26 +79,18 @@ class LLMCompanionService:
 
         accumulated_response = ""
         try:
-            # Step 4.1: Stream response from Gemini
-            response = await self.model.generate_content_async(
-                prompt,
-                generation_config=genai.GenerationConfig(
+            # Step 4.1: Stream response from Gemini using Client.aio
+            response = await self.client.aio.models.generate_content_stream(
+                model="gemini-2.5-flash",
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=SYSTEM_INSTRUCTION,
                     temperature=0.7
-                ),
-                stream=True
+                )
             )
             
             async for chunk in response:
-                try:
-                    token = chunk.text
-                except Exception:
-                    token = ""
-                    try:
-                        if chunk.candidates and chunk.candidates[0].content.parts:
-                            token = "".join(part.text for part in chunk.candidates[0].content.parts if hasattr(part, "text"))
-                    except Exception:
-                        pass
-                
+                token = chunk.text or ""
                 if token:
                     accumulated_response += token
                     yield f"event: delta\ndata: {json.dumps({'token': token})}\n\n"
@@ -130,9 +120,10 @@ class LLMCompanionService:
             class RecommendationsSchema(BaseModel):
                 recommendations: List[str] = Field(description="2 to 4 concrete, actionable health recommendations in Indonesian.")
                 
-            rec_response = await self.model.generate_content_async(
-                rec_prompt,
-                generation_config=genai.GenerationConfig(
+            rec_response = await self.client.aio.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=rec_prompt,
+                config=types.GenerateContentConfig(
                     response_mime_type="application/json",
                     response_schema=RecommendationsSchema,
                     temperature=0.3

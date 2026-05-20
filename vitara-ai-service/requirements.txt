@@ -14,4 +14,4 @@ pydantic
 python-multipart
 python-dotenv
 chromadb
-google-generativeai
+google-genai

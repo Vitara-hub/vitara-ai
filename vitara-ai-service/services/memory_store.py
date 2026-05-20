@@ -24,14 +24,16 @@ class MemoryStore:
             name="user_memories"
         )
         
-    def add_memory(self, user_id: str, text: str, mem_type: str = "chat", timestamp: str = None) -> str:
+    def add_memory(self, user_id: str, text: str, mem_type: str = "chat", timestamp: str = None, doc_id: str = None) -> str:
         """
         Saves a text document as a memory vector with associated metadata.
+        Supports deterministic doc_id and upsert operation for idempotency.
         """
         if not text or not text.strip():
             return ""
             
-        doc_id = str(uuid.uuid4())
+        if not doc_id:
+            doc_id = str(uuid.uuid4())
         
         # Default to current ISO format timestamp if not provided
         if not timestamp:
@@ -44,14 +46,14 @@ class MemoryStore:
         }
         
         try:
-            self.collection.add(
+            self.collection.upsert(
                 documents=[text],
                 metadatas=[metadata],
                 ids=[doc_id]
             )
             return doc_id
         except Exception as e:
-            print(f"⚠️ [MemoryStore] Error adding memory to ChromaDB: {e}")
+            print(f"⚠️ [MemoryStore] Error adding/updating memory in ChromaDB: {e}")
             return ""
 
     def retrieve_memories(self, user_id: str, query_text: str, limit: int = 5) -> List[Dict[str, Any]]:

@@ -3,6 +3,11 @@ import sys
 import json
 import asyncio
 from datetime import datetime
+# pyrefly: ignore [missing-import]
+from dotenv import load_dotenv
+
+# Load environment variables from .env
+load_dotenv()
 
 # Set Python path to find services and routers packages properly
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

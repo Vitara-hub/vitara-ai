@@ -43,13 +43,16 @@ Menganalisis teks jurnal pengguna untuk mendeteksi emosi dan tingkat stres.
 
 ```json
 {
-  "text": "Hari ini aku merasa sangat lelah dan tertekan karena deadline pekerjaan yang menumpuk."
+  "text": "Hari ini aku merasa sangat lelah dan tertekan karena deadline pekerjaan yang menumpuk.",
+  "user_id": "usr_abc123"
 }
 ```
 
 | Field | Type | Required | Keterangan |
 |-------|------|----------|-----------|
 | `text` | `string` | ✅ | Teks jurnal pengguna. Min 10 karakter. |
+| `user_id` | `string` | ❌ | ID unik pengguna untuk menyimpan riwayat kesehatan RAG. |
+
 
 **Response `200 OK`:**
 
@@ -78,8 +81,10 @@ Mengenali jenis makanan dari gambar dan mengestimasi kalori.
 | Field | Type | Required | Keterangan |
 |-------|------|----------|-----------|
 | `image` | `file` | ✅ | File gambar (JPEG/PNG). Max 5MB. |
+| `user_id` | `string` | ❌ | ID unik pengguna untuk menyimpan riwayat kesehatan RAG. |
 
 **Response `200 OK`:**
+
 
 ```json
 {
@@ -251,8 +256,8 @@ Mengirim pesan ke LLM Companion dan mendapatkan respons yang personal secara rea
 Respons dikirimkan menggunakan format Server-Sent Events (SSE). Setiap chunk diawali dengan `event: <nama_event>` dan `data: <json_payload>`.
 
 1.  **Event: `delta`** (Dikirim berkali-kali selama teks di-generate)
-    ```json
-    {
+```json
+{
       "token": "Sepertinya"
     }
     ```
@@ -260,13 +265,13 @@ Respons dikirimkan menggunakan format Server-Sent Events (SSE). Setiap chunk dia
     ```json
     {
       "full_response": "Sepertinya kamu cukup lelah hari ini. Berdasarkan data tidurmu, kamu hanya tidur 5.5 jam semalam. Yuk coba istirahat lebih cepat malam ini!",
-      "recommendations": [
-        "Tidur lebih awal, target 7–8 jam",
-        "Kurangi kafein setelah jam 3 sore",
-        "Coba teknik pernapasan 4-7-8 sebelum tidur"
-      ]
-    }
-    ```
+  "recommendations": [
+    "Tidur lebih awal, target 7–8 jam",
+    "Kurangi kafein setelah jam 3 sore",
+    "Coba teknik pernapasan 4-7-8 sebelum tidur"
+  ]
+}
+```
 
 | Event | Field | Type | Keterangan |
 |-------|-------|------|-----------|

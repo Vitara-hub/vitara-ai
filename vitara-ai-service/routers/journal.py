@@ -5,6 +5,7 @@ import tensorflow as tf
 from models.custom_layers import AttentionLayer
 from models.custom_losses import WeightedFocalLoss
 import os
+from services.llm_companion import memory_store
 
 router = APIRouter(prefix="/predict", tags=["Journal"])
 
@@ -39,21 +40,36 @@ async def predict_journal(request: JournalRequest):
     """
     if model is None:
         # Fallback ke mock data jika model belum tersedia di local
-        return JournalResponse(
+        response_data = JournalResponse(
             emotion="neutral",
             stress_level=0.5,
             topics=["unknown"]
         )
+        if request.user_id:
+            memory_store.add_memory(
+                user_id=request.user_id,
+                text=f"Analisis jurnal: Emosi terdeteksi adalah '{response_data.emotion}' dengan tingkat stres sebesar {response_data.stress_level:.2f}. (Data Uji Coba)",
+                mem_type="nlp_prediction"
+            )
+        return response_data
     
     try:
         # TODO: Implementasi preprocessing (Tokenization/Padding) jika tidak termasuk dalam model
         # prediction = model.predict([request.text])
         
         # Placeholder sementara menunggu koordinasi format output model dari Putri
-        return JournalResponse(
+        response_data = JournalResponse(
             emotion="anxious",
             stress_level=0.82,
             topics=["deadline", "kerja"]
         )
+        if request.user_id:
+            memory_store.add_memory(
+                user_id=request.user_id,
+                text=f"Analisis jurnal: Emosi terdeteksi adalah '{response_data.emotion}' dengan tingkat stres sebesar {response_data.stress_level:.2f}. Topik jurnal: {', '.join(response_data.topics)}.",
+                mem_type="nlp_prediction"
+            )
+        return response_data
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Inference error: {str(e)}")
+

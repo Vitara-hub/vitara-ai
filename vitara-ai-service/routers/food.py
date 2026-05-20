@@ -1,10 +1,11 @@
 # pyrefly: ignore [missing-import]
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, HTTPException, Form
 from schemas.food import FoodResponse
 import numpy as np
 from PIL import Image
 import io
 import os
+from services.llm_companion import memory_store
 
 # Gunakan ai_edge_litert jika tersedia (lebih ringan untuk Mac/ARM), fallback ke tf.lite
 try:
@@ -57,7 +58,10 @@ def preprocess_image(image_bytes):
     return np.expand_dims(img_array, axis=0)
 
 @router.post("/food", response_model=FoodResponse)
-async def predict_food(image: UploadFile = File(...)):
+async def predict_food(
+    image: UploadFile = File(...),
+    user_id: str = Form(None)
+):
     """
     Menerima upload gambar makanan dan mengembalikan prediksi jenis makanan serta estimasi kalori.
     """
@@ -98,9 +102,19 @@ async def predict_food(image: UploadFile = File(...)):
         MAX_CALORIES = 1000.0
         estimated_calories = float(calorie_pred[0][0]) * MAX_CALORIES
         
-        return FoodResponse(
+        response_data = FoodResponse(
             foods=[predicted_class_name],
             estimated_calories=round(estimated_calories)
         )
+        
+        if user_id:
+            memory_store.add_memory(
+                user_id=user_id,
+                text=f"Analisis makanan: Terdeteksi makanan '{', '.join(response_data.foods)}' dengan perkiraan energi sebesar {response_data.estimated_calories} kkal.",
+                mem_type="food_prediction"
+            )
+            
+        return response_data
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Inference error: {str(e)}")
+

@@ -4,6 +4,8 @@ from typing import List
 
 class JournalRequest(BaseModel):
     text: str = Field(..., min_length=10, description="Teks jurnal pengguna.")
+    user_id: str = Field(None, description="ID unik pengguna untuk menyimpan riwayat kesehatan RAG.")
+
 
 class JournalResponse(BaseModel):
     emotion: str

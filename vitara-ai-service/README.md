@@ -1,60 +1,105 @@
 # Layanan AI Vitara (Vitara AI Service)
 
-Repositori ini berisi layanan AI dan skrip _inference_ (inferensi) untuk proyek Vitara AI.
-
-## Ringkasan
-
-`vitara-ai-service` bertanggung jawab untuk menangani inferensi model AI di berbagai domain dalam aplikasi Vitara. Saat ini, layanan ini menyediakan skrip inferensi mandiri (_standalone_) yang dapat dipanggil untuk memproses data dan mengembalikan prediksi.
-
-### Modul Inferensi
-
-- **Food Vision (`inference_food.py`)**: Menggunakan model multi-output MobileNetV2 TFLite untuk mengklasifikasikan jenis makanan dan memperkirakan kandungan kalori dari gambar.
-- **NLP (`inference_nlp.py`)**: Skrip inferensi untuk Pemrosesan Bahasa Alami (Natural Language Processing).
-- **Sleep (`inference_sleep.py`)**: Skrip inferensi untuk analisis data terkait tidur.
-- **Typing (`inference_typing.py`)**: Skrip inferensi untuk analisis perilaku mengetik.
-
-## Struktur Proyek
-
-- `models/`: Berisi model _machine learning_ yang telah dilatih (misalnya, model `.tflite`).
-- `services/`: Lapisan logika bisnis dan layanan AI inti.
-- `routers/`: Definisi rute API (untuk integrasi FastAPI).
-- `sample/`: Contoh data untuk pengujian inferensi.
-- `schemas/`: Skema validasi data serta _request/response_ (misalnya, menggunakan Pydantic).
-- `scripts/`: Skrip utilitas untuk pemrosesan data, pelatihan, atau evaluasi.
-- `docs/`: Dokumentasi tambahan.
-- `logs/`: Log aplikasi.
-- `main.py`: Titik masuk (_entry point_) utama untuk layanan API FastAPI.
-- `requirements.txt`: Dependensi proyek Python.
-- `Dockerfile`: Konfigurasi kontainerisasi (Docker).
+Ini adalah aplikasi **FastAPI** yang menjadi inti dari layanan AI Vitara — menangani inferensi model machine learning, integrasi LLM (Gemini), dan manajemen memori percakapan berbasis vektor (RAG).
 
 ---
 
-## Contoh Penggunaan CLI (Inference Standalone)
+## Ringkasan Arsitektur
 
-### 1. Prasyarat
+`vitara-ai-service` menyediakan empat endpoint utama yang aktif saat ini, dengan dua modul lainnya masih dalam pengembangan:
 
-- **Python 3.9+**: Pastikan Python telah terinstal.
-- **uv (Direkomendasikan)**: Kami sangat merekomendasikan penggunaan **[uv](https://github.com/astral-sh/uv)** untuk manajemen paket yang cepat.
-  - **Penting untuk pengguna macOS (Apple Silicon)**: Pastikan `uv` diinstal sebagai native ARM64. Jika Anda mengalami error terkait "AVX instructions", instal ulang `uv` dengan perintah:
-    `curl -LsSf https://astral.sh/uv/install.sh | sh`
+| Modul | Endpoint | Model / Teknologi | Status |
+|---|---|---|---|
+| Journal Analysis | `POST /predict/journal` | NLP (TensorFlow `.keras`) | ✅ Aktif (mock mode jika model belum ada) |
+| Food Detection | `POST /predict/food` | MobileNetV2 TFLite | ✅ Aktif (model diperlukan) |
+| Health Score | `POST /health/score` | Rule-Based Engine | ✅ Aktif |
+| LLM Companion | `POST /companion/chat` | Gemini 2.5 Flash + ChromaDB | ✅ Aktif |
+| Sleep Analysis | `POST /predict/sleep` | — | 🚧 Dalam Pengembangan |
+| Typing Analysis | `POST /predict/typing` | — | 🚧 Dalam Pengembangan |
 
-### 2. Instalasi (Menggunakan `uv`)
+---
+
+## Struktur Proyek
+
+```text
+vitara-ai-service/
+├── main.py                 # Entry point FastAPI (menginisialisasi app & semua router)
+├── requirements.txt        # Dependensi Python
+├── Dockerfile              # Konfigurasi kontainerisasi (Docker)
+├── .env.example            # Template konfigurasi environment variable
+│
+├── routers/                # Definisi rute API (FastAPI Router)
+│   ├── journal.py          # /predict/journal — NLP analisis emosi & stres
+│   ├── food.py             # /predict/food   — Vision klasifikasi makanan
+│   ├── health_score.py     # /health/score   — Kalkulasi skor kesehatan + RAG sync
+│   └── companion.py        # /companion/chat — LLM Companion SSE streaming
+│
+├── services/               # Lapisan logika bisnis & layanan AI inti
+│   ├── health_score_service.py  # Rule-based engine untuk kalkulasi health score
+│   ├── llm_companion.py         # Pipeline RAG + Gemini streaming (LLM Companion)
+│   ├── memory_store.py          # Abstraksi ChromaDB (add, retrieve, delete)
+│   ├── context_builder.py       # Membangun konteks dari memori vektor untuk RAG
+│   └── prompts.py               # System instruction & user prompt templates (Gemini)
+│
+├── schemas/                # Skema validasi data Pydantic
+│   ├── journal.py          # JournalRequest, JournalResponse
+│   ├── food.py             # FoodResponse
+│   ├── health_score.py     # HealthScoreRequest, HealthScoreResponse, Breakdown
+│   └── companion.py        # CompanionChatRequest
+│
+├── models/                 # Model machine learning (file .keras/.tflite)
+│   ├── nlp_model/          # Model NLP (nlp_model.keras)
+│   └── vision_model/       # Model Vision TFLite + classes.txt
+│
+├── scripts/                # Skrip utilitas & pengujian
+│   ├── test_companion.py        # Uji integrasi LLM Companion & ChromaDB
+│   ├── clear_memories.py        # Reset/bersihkan data memori ChromaDB
+│   └── validate_models.py       # Validasi performa semua model AI
+│
+├── docs/                   # Dokumentasi teknis
+│   ├── architecture.md          # Arsitektur sistem Vitara AI
+│   ├── api-contract.md          # Kontrak API lengkap
+│   ├── dataset-contract.md      # Format & spesifikasi dataset
+│   ├── inference-guide.md       # Panduan CLI inference standalone
+│   ├── model-validation-guide.md
+│   └── postman_collection.json  # Koleksi Postman untuk pengujian integrasi
+│
+├── data/                   # (Ignored) Data lokal & penyimpanan ChromaDB
+│   └── chroma_db/          # Database vektor ChromaDB (persistent)
+│
+├── sample/                 # Contoh data untuk pengujian inferensi
+└── logs/                   # Log aplikasi & TensorBoard
+```
+
+---
+
+## Prasyarat
+
+- **Python 3.9+**
+- **uv** (direkomendasikan): Package manager Python yang cepat.
+  - Instalasi: `curl -LsSf https://astral.sh/uv/install.sh | sh`
+  - **Penting untuk macOS Apple Silicon**: Pastikan `uv` terinstal sebagai native ARM64. Jika mengalami error "AVX instructions", instal ulang dengan perintah di atas.
+- **GEMINI_API_KEY** (diperlukan untuk fitur LLM Companion): Dapatkan dari [Google AI Studio](https://aistudio.google.com/).
+
+---
+
+## Instalasi & Setup
+
+### 1. Menggunakan `uv` (Direkomendasikan)
 
 ```bash
-# Untuk pengguna macOS, pastikan PATH sudah terupdate
+# Pastikan PATH sudah terupdate (untuk macOS)
 export PATH="$HOME/.local/bin:$PATH"
 
-# Membuat virtual environment
+# Buat virtual environment
 uv venv
+source .venv/bin/activate  # macOS/Linux
 
-# Instalasi dependensi
-# (Otomatis mendeteksi platform: macOS Apple Silicon vs Windows/Linux)
+# Install dependensi
 uv pip install -r requirements.txt
 ```
 
-### 3. Instalasi Standar (Tanpa `uv`)
-
-Jika menggunakan `pip` standar, pastikan virtual environment Anda aktif:
+### 2. Menggunakan `pip` Standar
 
 ```bash
 python -m venv venv
@@ -64,154 +109,172 @@ source venv/bin/activate  # macOS/Linux
 pip install -r requirements.txt
 ```
 
----
-
-## Contoh Penggunaan CLI (Inference Standalone)
-
-Untuk memudahkan pengujian dan verifikasi model mandiri secara langsung melalui terminal (*command line*) tanpa menjalankan server web secara penuh, kami menyediakan skrip inferensi mandiri untuk masing-masing model (seperti Food Vision dan Typing Stress).
-
-Panduan lengkap mengenai parameter input, format perintah, dan contoh penggunaan CLI untuk setiap model dapat diakses di:
-👉 **[Inference Standalone CLI Guide](docs/inference-guide.md)**
-
----
-
-
-
-## Validasi Model
-
-Skrip `scripts/validate_models.py` digunakan untuk memvalidasi performa model AI (NLP, Vision, Sleep, Typing, dan Health Score) terhadap dataset pengujian (_test dataset_). Skrip ini membandingkan metrik performa aktual (seperti Akurasi atau MAE) dengan ambang batas (_threshold_) yang telah ditentukan.
-
-### Persyaratan Data
-
-Skrip ini mengasumsikan struktur data berikut di direktori root proyek:
-
-- `data/nlp/processed/test.csv`
-- `data/vision/processed/split/test/`
-- `data/typing/processed/test.csv`
-- `data/sleep/processed/test.csv`
-- `data/health_score/processed/test.csv`
-
-### Cara Menjalankan Validasi
-
-Anda dapat menjalankan validasi untuk semua model sekaligus atau untuk model tertentu saja.
-
-**1. Validasi Semua Model:**
+### 3. Konfigurasi Environment Variable
 
 ```bash
-# Menggunakan uv (direkomendasikan):
-uv run python scripts/validate_models.py --all
-
-# Menggunakan python standar (pastikan venv aktif):
-python scripts/validate_models.py --all
+cp .env.example .env
 ```
 
-**2. Validasi Model Spesifik:**
+Edit file `.env` sesuai kebutuhan:
 
-- **NLP:** `uv run python scripts/validate_models.py --nlp`
-- **Vision:** `uv run python scripts/validate_models.py --vision`
-- **Typing:** `uv run python scripts/validate_models.py --typing`
-- **Sleep:** `uv run python scripts/validate_models.py --sleep`
-- **Health Score:** `uv run python scripts/validate_models.py --health`
+```env
+# FastAPI Configuration
+APP_ENV=development
+APP_PORT=8000
 
-### Hasil Validasi
+# LLM Companion Configuration (wajib untuk fitur Companion)
+GEMINI_API_KEY=your_gemini_api_key_here
 
-Skrip akan memberikan output berupa status `PASS` atau `FAIL` untuk setiap metrik. Jika ada model yang tidak memenuhi ambang batas, skrip akan mengembalikan kode keluar (_exit code_) 1.
-
----
-
-## Monitoring dengan TensorBoard
-
-TensorBoard digunakan untuk memvisualisasikan metrik pelatihan model (loss, accuracy, dll.) yang tersimpan di direktori `logs/`.
-
-### Cara Menjalankan TensorBoard
-Jalankan perintah berikut di direktori `vitara-ai-service`:
-
-```bash
-# Menggunakan uv (direkomendasikan):
-uv run tensorboard --logdir logs/
-
-# Menggunakan python standar:
-tensorboard --logdir logs/
+# Vector Database (RAG)
+CHROMA_DB_PATH=./data/chroma_db
 ```
-
-Setelah dijalankan, buka browser dan akses: **[http://localhost:6006](http://localhost:6006)**
-
-### Hal yang Perlu Di-review
-1. **Scalars Tab**: Perhatikan grafik `accuracy` dan `loss`.
-   - Bandingkan garis *Training* dan *Validation*.
-   - Waspadai **Overfitting**: Jika *training loss* terus turun tetapi *validation loss* justru naik.
-2. **Graphs Tab**: Untuk memeriksa struktur arsitektur model secara visual.
-3. **Histograms**: Untuk melihat distribusi bobot (_weights_) dan bias selama pelatihan.
 
 ---
 
 ## Menjalankan API Service
 
-Layanan API menggunakan **FastAPI** dan dapat dijalankan dengan **Uvicorn**.
-
-### 1. Menjalankan secara Lokal
-Pastikan virtual environment Anda sudah aktif, lalu jalankan:
-
 ```bash
-# Menggunakan uvicorn secara langsung
+# Menggunakan uvicorn secara langsung (dengan hot-reload)
 uvicorn main:app --reload
 
 # Atau menjalankan main.py
 python main.py
 ```
 
-Setelah server berjalan, Anda dapat mengakses dokumentasi interaktif di:
+Setelah server berjalan, akses dokumentasi interaktif di:
 - **Swagger UI**: [http://localhost:8000/docs](http://localhost:8000/docs)
 - **ReDoc**: [http://localhost:8000/redoc](http://localhost:8000/redoc)
 
-### 2. Endpoints API (Batch 1)
+---
 
-| Endpoint | Method | Deskripsi |
-| --- | --- | --- |
-| `/predict/journal` | POST | Menganalisis teks jurnal untuk mendeteksi emosi dan tingkat stres. |
-| `/predict/food` | POST | Mengklasifikasikan makanan dan mengestimasi kalori dari gambar. |
+## Endpoint API
+
+### 📰 Journal Analysis
+**`POST /predict/journal`** — Menganalisis teks jurnal untuk mendeteksi emosi, tingkat stres, dan topik.
+
+- **Request**: `{ "text": "...", "user_id": "..." }`
+- **Response**: `{ "emotion": "anxious", "stress_level": 0.82, "topics": ["deadline", "kerja"] }`
+- **Catatan**: Otomatis menyimpan hasil analisis ke memori RAG (ChromaDB).
+
+### 🍔 Food Detection
+**`POST /predict/food`** — Mengklasifikasikan makanan dan mengestimasi kalori dari gambar.
+
+- **Request**: `multipart/form-data` — field `image` (JPEG/PNG) & `user_id` (opsional)
+- **Response**: `{ "foods": ["nasi_goreng"], "estimated_calories": 450 }`
+- **Catatan**: Memerlukan model `vision_model.tflite` di folder `models/vision_model/`.
+
+### 💚 Health Score
+**`POST /health/score`** — Menghitung skor kesehatan holistik secara **rule-based & deterministic**.
+
+- **Request**: Mendukung **input parsial** — cukup kirimkan data yang tersedia.
+  ```json
+  {
+    "user_id": "user-123",
+    "nlp_result": { "emotion": "anxious", "stress_level": 0.82 },
+    "food_result": { "estimated_calories": 450 },
+    "sleep_result": { "quality_score": 75 },
+    "typing_result": { "stress_score": 0.6 }
+  }
+  ```
+- **Response**: `{ "health_score": 72, "breakdown": { "mood": 40, "nutrition": 90, "stress": 41, "sleep": 75 } }`
+- **Catatan**: Hasil perhitungan otomatis disinkronkan ke ChromaDB secara **asinkron** (background task) sebagai konteks untuk LLM Companion.
+
+### 🤖 LLM Companion (Gemini RAG)
+**`POST /companion/chat`** — Asisten kesehatan AI yang berkomunikasi via **Server-Sent Events (SSE)** streaming.
+
+- **Request**: `{ "user_id": "user-123", "message": "Aku merasa kelelahan hari ini." }`
+- **Response**: Stream SSE dengan dua jenis event:
+  - `event: delta` — token teks demi token secara real-time.
+  - `event: final` — respons lengkap beserta 2-4 rekomendasi kesehatan terstruktur.
+- **Pipeline RAG**: Setiap permintaan secara otomatis mengambil memori relevan dari ChromaDB → membangun konteks → mengirim ke Gemini 2.5 Flash → menyimpan kembali interaksi ke ChromaDB.
+- **Catatan**: Memerlukan `GEMINI_API_KEY` di file `.env`. Jika tidak dikonfigurasi, berjalan dalam **Demo Mode**.
+
+---
+
+## Inference Standalone (CLI)
+
+Untuk pengujian model secara mandiri tanpa menjalankan server web penuh, tersedia skrip inference standalone:
+
+```bash
+# Food Vision
+python inference_food.py --image sample/food.jpg
+
+# NLP
+python inference_nlp.py
+
+# Sleep
+python inference_sleep.py
+
+# Typing
+python inference_typing.py
+```
+
+Panduan lengkap parameter CLI tersedia di 👉 **[docs/inference-guide.md](docs/inference-guide.md)**
 
 ---
 
 ## Testing & Integrasi
 
 ### 1. Postman Collection
-Terdapat file koleksi Postman untuk mempermudah pengujian integrasi di:
-`docs/postman_collection.json`
 
-**Cara menggunakan:**
-1. Import file `docs/postman_collection.json` ke dalam aplikasi Postman.
-2. Pastikan server FastAPI sudah berjalan di `localhost:8000`.
-3. Jalankan request yang tersedia. Koleksi ini sudah dilengkapi dengan **Test Scripts** untuk memvalidasi respons dan memastikan **latency ≤ 2 detik**.
+Import `docs/postman_collection.json` ke Postman, lalu jalankan dengan server yang sudah berjalan di `localhost:8000`. Koleksi sudah dilengkapi **Test Scripts** untuk memvalidasi respons dan latency ≤ 2 detik.
 
-### 2. Skrip Uji Integrasi LLM Companion (`scripts/test_companion.py`)
-Skrip ini digunakan untuk menguji integrasi **LLM Companion Service** (Gemini RAG SSE) dan **Memory Store** (ChromaDB) secara langsung melalui terminal tanpa perlu menjalankan server FastAPI secara penuh.
+### 2. Skrip Uji Integrasi LLM Companion
 
-**Cara Menjalankan:**
 ```bash
 # Menggunakan uv (direkomendasikan):
 uv run python scripts/test_companion.py
 
-# Menggunakan python standar (pastikan virtual environment aktif):
+# Menggunakan python standar (pastikan venv aktif):
 python scripts/test_companion.py
 ```
 
-**Alur Pengujian:**
-- **Memory Store (ChromaDB)**: Memvalidasi penambahan data memori ke basis data vektor ChromaDB, pencarian semantik (retrieval), dan pembersihan data uji.
-- **LLM Companion Service**: Menguji deteksi `GEMINI_API_KEY` dari file `.env`, memvisualisasikan streaming respons token demi token (SSE) secara real-time di terminal, serta memverifikasi data rekomendasi tindakan kesehatan terstruktur di akhir alur.
+**Yang diuji:**
+- ✅ **Memory Store (ChromaDB)**: Upsert memori, semantic retrieval, dan cleanup data uji.
+- ✅ **LLM Companion**: Deteksi `GEMINI_API_KEY`, visualisasi streaming SSE token demi token, validasi data rekomendasi terstruktur.
 
-### 3. Skrip Pembersihan ChromaDB (`scripts/clear_memories.py`)
-Skrip ini digunakan untuk membersihkan atau mereset seluruh data memori percakapan pengguna yang tersimpan di dalam collection `user_memories` di basis data vektor ChromaDB.
+### 3. Skrip Pembersihan ChromaDB
 
-**Cara Menjalankan:**
 ```bash
-# Menggunakan uv (direkomendasikan):
+# Menghapus semua data memori pengguna dari ChromaDB:
 uv run python scripts/clear_memories.py
 
-# Menggunakan python standar (pastikan virtual environment aktif):
-python scripts/clear_memories.py
+# Hard reset total (hapus folder fisik database):
+rm -rf data/chroma_db
 ```
 
-_Catatan: Jika Anda ingin melakukan **hard reset** database total secara fisik, Anda dapat menghapus folder penyimpanannya dengan menjalankan perintah `rm -rf data/chroma_db` di terminal._
+### 4. Validasi Model
 
-_Catatan: Ini adalah README sementara dan akan terus diperbarui seiring dengan pengembangan dan penerapan layanan API ini._
+```bash
+# Validasi semua model sekaligus:
+uv run python scripts/validate_models.py --all
+
+# Validasi per model:
+uv run python scripts/validate_models.py --nlp
+uv run python scripts/validate_models.py --vision
+uv run python scripts/validate_models.py --typing
+uv run python scripts/validate_models.py --sleep
+uv run python scripts/validate_models.py --health
+```
+
+Skrip akan mengeluarkan status `PASS` atau `FAIL` per metrik, dan mengembalikan exit code `1` jika ada model yang tidak memenuhi ambang batas.
+
+---
+
+## Monitoring dengan TensorBoard
+
+```bash
+# Menggunakan uv:
+uv run tensorboard --logdir logs/
+
+# Menggunakan python standar:
+tensorboard --logdir logs/
+```
+
+Akses di browser: **[http://localhost:6006](http://localhost:6006)**
+
+| Tab | Fungsi |
+|---|---|
+| **Scalars** | Pantau grafik `accuracy` & `loss`. Waspadai overfitting (training loss ↓, validation loss ↑). |
+| **Graphs** | Periksa struktur arsitektur model secara visual. |
+| **Histograms** | Lihat distribusi _weights_ & _bias_ selama pelatihan. |

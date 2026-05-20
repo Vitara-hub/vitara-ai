@@ -14,15 +14,20 @@ Repositori ini menggunakan struktur modular untuk memisahkan antara riset (noteb
 └── docs/                   # Dokumentasi arsitektur, API contract, dan postman collection
 ```
 
+---
+
 ### 🧠 Modul AI (Microservices)
 
-Beberapa model yang dikembangkan dan di-serve pada servis API ini di antaranya:
+Berikut modul AI yang telah dikembangkan dan di-serve pada layanan API:
 
-- **NLP (Journal Analysis)**: Analisis emosi dan tingkat stres berbasis teks jurnal.
-- **Vision (Food Detection)**: Pengenalan jenis makanan dan estimasi kalori berbasis citra.
-- **Health Score**: Model multimodal untuk menghitung skor kesehatan holistik.
-- **Sleep Pattern**: Analisis kualitas dan pola tidur pengguna.
-- **Typing Pattern**: Deteksi tingkat stres melalui dinamika pola pengetikan.
+| Modul | Endpoint | Status | Keterangan |
+|---|---|---|---|
+| **NLP (Journal Analysis)** | `POST /predict/journal` | ✅ Aktif | Analisis emosi & tingkat stres dari teks jurnal. |
+| **Vision (Food Detection)** | `POST /predict/food` | ✅ Aktif | Klasifikasi makanan & estimasi kalori dari gambar (MobileNetV2 TFLite). |
+| **Health Score** | `POST /health/score` | ✅ Aktif | Kalkulasi skor kesehatan holistik berbasis **rule-based engine** (deterministic). |
+| **LLM Companion** | `POST /companion/chat` | ✅ Aktif | Asisten kesehatan AI berbasis **Gemini 2.5 Flash + RAG (ChromaDB)** dengan SSE streaming. |
+| **Sleep Pattern** | `POST /predict/sleep` | 🚧 Dalam Pengembangan | Analisis kualitas dan pola tidur pengguna. |
+| **Typing Pattern** | `POST /predict/typing` | 🚧 Dalam Pengembangan | Deteksi tingkat stres melalui dinamika pola pengetikan. |
 
 ---
 
@@ -48,6 +53,7 @@ Layanan API berada di dalam folder `vitara-ai-service`. Ikuti langkah berikut un
 
    ```bash
    cp .env.example .env
+   # Isi GEMINI_API_KEY di file .env untuk mengaktifkan fitur LLM Companion
    ```
 
 4. **Jalankan API Server**:
@@ -59,15 +65,17 @@ Layanan API berada di dalam folder `vitara-ai-service`. Ikuti langkah berikut un
 
 Setelah server berjalan, dokumentasi interaktif tersedia di:
 👉 **Swagger UI**: [http://localhost:8000/docs](http://localhost:8000/docs)
+👉 **ReDoc**: [http://localhost:8000/redoc](http://localhost:8000/redoc)
 
 ---
 
 ## 🧪 Testing & Verifikasi
 
-Kami menggunakan Postman untuk pengujian integrasi otomatis. Koleksi pengujian tersedia di:
-`vitara-ai-service/docs/postman_collection.json`
+Kami menyediakan beberapa metode pengujian:
 
-Koleksi ini mencakup pengujian fungsionalitas dan validasi performa dengan ambang batas **latency ≤ 2 detik** per endpoint.
+- **Postman Collection**: Tersedia di `vitara-ai-service/docs/postman_collection.json` untuk pengujian integrasi otomatis. Koleksi ini mencakup validasi fungsionalitas dengan ambang batas **latency ≤ 2 detik** per endpoint.
+- **Skrip LLM Companion**: `scripts/test_companion.py` untuk menguji pipeline RAG (ChromaDB) dan streaming Gemini secara langsung dari terminal.
+- **Validasi Model**: `scripts/validate_models.py` untuk memvalidasi performa model AI terhadap ambang batas metrik yang telah ditentukan.
 
 ---
 

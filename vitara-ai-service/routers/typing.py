@@ -52,10 +52,16 @@ async def predict_typing(request: TypingPredictRequest):
                 f"Detail: Kecepatan {request.wpm} WPM, rasio backspace {request.backspace_rate:.2%}, "
                 f"dan pola interval penekanan tombol ({len(request.inter_key_timings)} ketukan)."
             )
+            # Daily upsert: simpan sesi pengetikan terbaru hari ini (overwrite sesi sebelumnya)
+            from datetime import datetime
+            current_date = datetime.now().strftime("%Y-%m-%d")
+            daily_id = f"typing_prediction_{request.user_id}_{current_date}"
+            
             memory_store.add_memory(
                 user_id=request.user_id,
                 text=memory_text,
-                mem_type="typing_prediction"
+                mem_type="typing_prediction",
+                doc_id=daily_id
             )
             
         return response_data

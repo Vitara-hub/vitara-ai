@@ -37,12 +37,19 @@ async def predict_sleep(request: SleepPredictRequest):
             )
             if request.sleep_debt_hours is not None:
                 memory_text += f" Utang tidur: {request.sleep_debt_hours} jam."
-                
+            
+            # Daily upsert: hanya 1 entri tidur per hari (overwrite jika dipanggil lagi)
+            from datetime import datetime
+            current_date = datetime.now().strftime("%Y-%m-%d")
+            daily_id = f"sleep_prediction_{request.user_id}_{current_date}"
+            
             memory_store.add_memory(
                 user_id=request.user_id,
                 text=memory_text,
-                mem_type="sleep_prediction"
+                mem_type="sleep_prediction",
+                doc_id=daily_id
             )
+
             
         return response_data
     except Exception as e:

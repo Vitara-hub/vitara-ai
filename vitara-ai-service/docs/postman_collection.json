@@ -45,12 +45,10 @@
 					}
 				},
 				"url": {
-					"raw": "http://localhost:8000/predict/journal",
-					"protocol": "http",
+					"raw": "{{base_url}}/predict/journal",
 					"host": [
-						"localhost"
+						"{{base_url}}"
 					],
-					"port": "8000",
 					"path": [
 						"predict",
 						"journal"
@@ -98,12 +96,10 @@
 					]
 				},
 				"url": {
-					"raw": "http://localhost:8000/predict/food",
-					"protocol": "http",
+					"raw": "{{base_url}}/predict/food",
 					"host": [
-						"localhost"
+						"{{base_url}}"
 					],
-					"port": "8000",
 					"path": [
 						"predict",
 						"food"
@@ -154,12 +150,10 @@
 					}
 				},
 				"url": {
-					"raw": "http://localhost:8000/health/score",
-					"protocol": "http",
+					"raw": "{{base_url}}/health/score",
 					"host": [
-						"localhost"
+						"{{base_url}}"
 					],
-					"port": "8000",
 					"path": [
 						"health",
 						"score"
@@ -167,6 +161,13 @@
 				}
 			},
 			"response": []
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000",
+			"type": "string"
 		}
 	]
 }

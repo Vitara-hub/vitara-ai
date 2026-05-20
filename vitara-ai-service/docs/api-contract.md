@@ -178,9 +178,9 @@ Mendeteksi tingkat stres berdasarkan pola pengetikan (keystroke dynamics).
 
 ### 5. `POST /health/score`
 
-Menghitung skor kesehatan holistik pengguna berdasarkan output dari semua model.
+Menghitung skor kesehatan holistik pengguna berdasarkan sub-hasil analisis yang tersedia (Mendukung data aktivitas parsial dengan pembobotan dinamis secara asinkron).
 
-**Request Body:**
+**Request Body (Lengkap):**
 
 ```json
 {
@@ -201,15 +201,27 @@ Menghitung skor kesehatan holistik pengguna berdasarkan output dari semua model.
 }
 ```
 
+**Request Body (Parsial - Contoh hanya Mood):**
+
+```json
+{
+  "user_id": "usr_abc123",
+  "nlp_result": {
+    "emotion": "happy",
+    "stress_level": 0.20
+  }
+}
+```
+
 | Field | Type | Required | Keterangan |
 |-------|------|----------|-----------|
 | `user_id` | `string` | ✅ | ID unik pengguna |
-| `nlp_result` | `object` | ✅ | Output dari `/predict/journal` |
-| `food_result` | `object` | ✅ | Output dari `/predict/food` |
-| `sleep_result` | `object` | ✅ | Output dari `/predict/sleep` |
-| `typing_result` | `object` | ✅ | Output dari `/predict/typing` |
+| `nlp_result` | `object` | ❌ | Output dari `/predict/journal`. Default: `null` |
+| `food_result` | `object` | ❌ | Output dari `/predict/food`. Default: `null` |
+| `sleep_result` | `object` | ❌ | Output dari `/predict/sleep`. Default: `null` |
+| `typing_result` | `object` | ❌ | Output dari `/predict/typing`. Default: `null` |
 
-**Response `200 OK`:**
+**Response `200 OK` (Lengkap):**
 
 ```json
 {
@@ -223,13 +235,27 @@ Menghitung skor kesehatan holistik pengguna berdasarkan output dari semua model.
 }
 ```
 
+**Response `200 OK` (Parsial - Berdasarkan Contoh hanya Mood):**
+
+```json
+{
+  "health_score": 84,
+  "breakdown": {
+    "mood": 90,
+    "nutrition": null,
+    "stress": 80,
+    "sleep": null
+  }
+}
+```
+
 | Field | Type | Keterangan |
 |-------|------|-----------|
 | `health_score` | `integer` | Skor kesehatan keseluruhan, skala 0 – 100 |
-| `breakdown.mood` | `integer` | Skor dimensi suasana hati |
-| `breakdown.nutrition` | `integer` | Skor dimensi nutrisi |
-| `breakdown.stress` | `integer` | Skor dimensi stres (100 = tidak stres) |
-| `breakdown.sleep` | `integer` | Skor dimensi tidur |
+| `breakdown.mood` | `integer` \| `null` | Skor dimensi suasana hati. `null` jika data tidak dikirim. |
+| `breakdown.nutrition` | `integer` \| `null` | Skor dimensi nutrisi. `null` jika data tidak dikirim. |
+| `breakdown.stress` | `integer` \| `null` | Skor dimensi bebas stres (100 = tidak stres). `null` jika data tidak dikirim. |
+| `breakdown.sleep` | `integer` \| `null` | Skor dimensi tidur. `null` jika data tidak dikirim. |
 
 ---
 

@@ -57,7 +57,7 @@ Setelah server berjalan, Anda dapat mengakses dokumentasi interaktif di:
 
 ## Testing & Integrasi
 
-### Postman Collection
+### 1. Postman Collection
 Terdapat file koleksi Postman untuk mempermudah pengujian integrasi di:
 `docs/postman_collection.json`
 
@@ -65,6 +65,22 @@ Terdapat file koleksi Postman untuk mempermudah pengujian integrasi di:
 1. Import file `docs/postman_collection.json` ke dalam aplikasi Postman.
 2. Pastikan server FastAPI sudah berjalan di `localhost:8000`.
 3. Jalankan request yang tersedia. Koleksi ini sudah dilengkapi dengan **Test Scripts** untuk memvalidasi respons dan memastikan **latency ≤ 2 detik**.
+
+### 2. Skrip Uji Integrasi LLM Companion (`scripts/test_companion.py`)
+Skrip ini digunakan untuk menguji integrasi **LLM Companion Service** (Gemini RAG SSE) dan **Memory Store** (ChromaDB) secara langsung melalui terminal tanpa perlu menjalankan server FastAPI secara penuh.
+
+**Cara Menjalankan:**
+```bash
+# Menggunakan uv (direkomendasikan):
+uv run python scripts/test_companion.py
+
+# Menggunakan python standar (pastikan virtual environment aktif):
+python scripts/test_companion.py
+```
+
+**Alur Pengujian:**
+- **Memory Store (ChromaDB)**: Memvalidasi penambahan data memori ke basis data vektor ChromaDB, pencarian semantik (retrieval), dan pembersihan data uji.
+- **LLM Companion Service**: Menguji deteksi `GEMINI_API_KEY` dari file `.env`, memvisualisasikan streaming respons token demi token (SSE) secara real-time di terminal, serta memverifikasi data rekomendasi tindakan kesehatan terstruktur di akhir alur.
 
 ---
 

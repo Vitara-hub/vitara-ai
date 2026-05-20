@@ -313,22 +313,55 @@ class ModelValidator:
             print(f"{Colors.WARNING}Sleep model or data missing. Skipping.{Colors.ENDC}")
 
     def validate_health_score(self):
-        print_header("Multimodal Health Score Model Validation")
-        model_path = os.path.join(BASE_DIR, "models/health_score_model")
-        test_path = os.path.join(DATA_DIR, "health_score/processed/test.csv")
-        
-        if not os.path.exists(model_path) or not os.path.exists(test_path):
-            print(f"{Colors.WARNING}Health Score Model or data missing.{Colors.ENDC}")
-            return
-            
+        print_header("Rule-Based Health Score Validation")
         try:
-            model = tf.keras.models.load_model(model_path, custom_objects=CUSTOM_OBJECTS)
-            test_df = pd.read_csv(test_path)
-            # Health score model usually takes multiple inputs
-            # results = model.evaluate([input1, input2, ...], y_test)
-            results = model.evaluate(test_df.drop('target', axis=1), test_df['target'], verbose=0)
-            mae = results[1] if len(results) > 1 else results[0]
-            self.results["Health Score"] = print_result("Health Score MAE", mae, 0.02, condition='le')
+            from services.health_score_service import HealthScoreService
+            from schemas.health_score import HealthScoreRequest, NLPResult, FoodResult, SleepResult, TypingResult
+            
+            # Create a mock request representing a healthy state
+            healthy_req = HealthScoreRequest(
+                user_id="test_user_healthy",
+                nlp_result=NLPResult(emotion="happy", stress_level=0.2),
+                food_result=FoodResult(estimated_calories=550),
+                sleep_result=SleepResult(quality_score=85),
+                typing_result=TypingResult(stress_score=0.15)
+            )
+            
+            # Create a mock request representing a poor health/stressed state
+            stressed_req = HealthScoreRequest(
+                user_id="test_user_stressed",
+                nlp_result=NLPResult(emotion="sad", stress_level=0.8),
+                food_result=FoodResult(estimated_calories=120),
+                sleep_result=SleepResult(quality_score=45),
+                typing_result=TypingResult(stress_score=0.75)
+            )
+            
+            # Run calculations
+            healthy_res = HealthScoreService.calculate_health_score(healthy_req)
+            stressed_res = HealthScoreService.calculate_health_score(stressed_req)
+            
+            # Assertions for validation
+            # 1. Logic check: Healthy overall score must be greater than stressed overall score
+            logic_ok = healthy_res.health_score > stressed_res.health_score
+            p1 = print_result("Healthy > Stressed (Logic Check)", 1.0 if logic_ok else 0.0, 1.0)
+            
+            # 2. Stress score conversion: avg stress = 0.175. stress_score should be round((1 - 0.175) * 100) = 83.
+            p2 = print_result("Stress Calculation Check", float(healthy_res.breakdown.stress), 83.0)
+            
+            # 3. Mood score: happy = 90
+            p3 = print_result("Mood Classification Check", float(healthy_res.breakdown.mood), 90.0)
+            
+            # 4. Sleep score: quality_score = 85
+            p4 = print_result("Sleep Quality Mapping Check", float(healthy_res.breakdown.sleep), 85.0)
+            
+            # 5. Nutrition score: 550 kcal = 90
+            p5 = print_result("Nutrition Calorie Mapping Check", float(healthy_res.breakdown.nutrition), 90.0)
+            
+            # 6. Overall weighted score check
+            # (83 * 0.3) + (85 * 0.3) + (90 * 0.2) + (90 * 0.2) = 24.9 + 25.5 + 18 + 18 = 86.4 -> round to 86.
+            p6 = print_result("Overall Health Score Check", float(healthy_res.health_score), 86.0)
+            
+            self.results["Health Score"] = p1 and p2 and p3 and p4 and p5 and p6
         except Exception as e:
             print(f"{Colors.FAIL}Error validating Health Score: {e}{Colors.ENDC}")
             self.results["Health Score"] = False

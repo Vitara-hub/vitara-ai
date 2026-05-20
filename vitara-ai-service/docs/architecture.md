@@ -140,7 +140,11 @@ Input (sleep features: duration, interruptions, schedule regularity, etc.)
 
 ### 5. Multimodal Health Score Model
 
-**Tugas:** Menggabungkan output dari semua model menjadi skor kesehatan holistik menggunakan strategi **late fusion**.
+**Tugas:** Menggabungkan output dari semua model menjadi skor kesehatan holistik.
+
+#### A. Rencana Awal (Trained Model Approach - Legacy/Planned)
+
+Strategi awal menggunakan strategi **late fusion** berbasis neural network:
 
 ```
 nlp_embed     ─┐
@@ -163,6 +167,39 @@ sleep_embed   ─┘
   }
 }
 ```
+
+#### B. Pendekatan Aktif (Rule-Based Approach - Aktif)
+
+Untuk menyederhanakan arsitektur dan meningkatkan transparansi perhitungan skor, sistem saat ini menggunakan pendekatan **Rule-Based (Berbasis Formula/Aturan)**.
+
+Sistem menghitung sub-skor untuk masing-masing dimensi kesehatan terlebih dahulu sebelum menggabungkannya ke dalam nilai *Overall Health Score* berbasis rata-rata tertimbang (_weighted average_).
+
+##### 1. Logika Perhitungan Sub-Skor (Dimensi):
+*   **Mood Score (0 - 100)**: Dikonversi secara deterministik dari label emosi hasil analisis jurnal NLP:
+    *   `happy` / `joy` / `excited` / `love` / `cheerful` = 90
+    *   `neutral` / `calm` / `relaxed` = 70
+    *   `sad` / `anxious` / `fear` / `stressed` / `lonely` / `worried` = 40
+    *   `angry` / `frustrated` / `annoyed` / `irritated` = 30
+    *   *Default/Lainnya* = 60
+*   **Stress Score (0 - 100)**: Menggabungkan tingkat stres dari analisis jurnal (NLP) dan pola pengetikan (Keystroke Dynamics). Nilai dikonversi agar semakin tinggi nilai skor, semakin **tidak stres** (100 = bebas stres):
+    *   `Stress_Score = 100 - ( (nlp.stress_level + typing.stress_score) / 2 * 100 )`
+*   **Sleep Score (0 - 100)**: Diambil langsung dari nilai kualitas tidur:
+    *   `Sleep_Score = sleep_result.quality_score`
+*   **Nutrition Score (0 - 100)**: Mengevaluasi jumlah kalori estimasi per porsi makanan:
+    *   *Ideal* (400 - 700 kkal) = 90
+    *   *Kurang* (200 - 399 kkal) = 70
+    *   *Sangat Kurang* (< 200 kkal) = 50
+    *   *Berlebih* (701 - 1000 kkal) = 60
+    *   *Sangat Berlebih* (> 1000 kkal) = 40
+
+##### 2. Logika Perhitungan Overall Health Score:
+Menggunakan rata-rata tertimbang (_weighted average_) dari keempat komponen utama di atas dengan distribusi bobot sebagai berikut:
+*   **Sleep**: 30%
+*   **Stress**: 30%
+*   **Mood**: 20%
+*   **Nutrition**: 20%
+
+`Health_Score = (Sleep_Score * 0.3) + (Stress_Score * 0.3) + (Mood_Score * 0.2) + (Nutrition_Score * 0.2)`
 
 ---
 

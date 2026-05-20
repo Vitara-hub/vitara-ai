@@ -212,7 +212,7 @@
 			"response": []
 		},
 		{
-			"name": "Health Score",
+			"name": "Health Score (Full Data)",
 			"event": [
 				{
 					"listen": "test",
@@ -226,14 +226,14 @@
 							"    pm.expect(pm.response.responseTime).to.be.below(2000);",
 							"});",
 							"",
-							"pm.test(\"Verify Health Score Response Format\", function () {",
+							"pm.test(\"Verify Health Score Full Format\", function () {",
 							"    const jsonData = pm.response.json();",
 							"    pm.expect(jsonData).to.have.property('health_score');",
 							"    pm.expect(jsonData).to.have.property('breakdown');",
-							"    pm.expect(jsonData.breakdown).to.have.property('mood');",
-							"    pm.expect(jsonData.breakdown).to.have.property('nutrition');",
-							"    pm.expect(jsonData.breakdown).to.have.property('stress');",
-							"    pm.expect(jsonData.breakdown).to.have.property('sleep');",
+							"    pm.expect(jsonData.breakdown.mood).to.not.be.null;",
+							"    pm.expect(jsonData.breakdown.nutrition).to.not.be.null;",
+							"    pm.expect(jsonData.breakdown.stress).to.not.be.null;",
+							"    pm.expect(jsonData.breakdown.sleep).to.not.be.null;",
 							"});"
 						],
 						"type": "text/javascript"
@@ -246,6 +246,59 @@
 				"body": {
 					"mode": "raw",
 					"raw": "{\n    \"user_id\": \"usr_abc123\",\n    \"nlp_result\": {\n        \"emotion\": \"anxious\",\n        \"stress_level\": 0.82\n    },\n    \"food_result\": {\n        \"estimated_calories\": 520\n    },\n    \"sleep_result\": {\n        \"quality_score\": 72\n    },\n    \"typing_result\": {\n        \"stress_score\": 0.74\n    }\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/health/score",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"health",
+						"score"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Health Score (Partial Data - Mood Only)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Response time is less than 2000ms\", function () {",
+							"    pm.expect(pm.response.responseTime).to.be.below(2000);",
+							"});",
+							"",
+							"pm.test(\"Verify Health Score Partial Format\", function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property('health_score');",
+							"    pm.expect(jsonData.breakdown.mood).to.not.be.null;",
+							"    pm.expect(jsonData.breakdown.stress).to.not.be.null;",
+							"    pm.expect(jsonData.breakdown.nutrition).to.be.null;",
+							"    pm.expect(jsonData.breakdown.sleep).to.be.null;",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"user_id\": \"usr_abc123\",\n    \"nlp_result\": {\n        \"emotion\": \"happy\",\n        \"stress_level\": 0.20\n    }\n}",
 					"options": {
 						"raw": {
 							"language": "json"

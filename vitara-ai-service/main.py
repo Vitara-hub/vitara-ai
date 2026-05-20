@@ -5,10 +5,11 @@ import uvicorn
 import os
 # pyrefly: ignore [missing-import]
 from dotenv import load_dotenv
-from routers import journal, food, health_score, companion, sleep, typing
 
 # Load environment variables dari file .env
 load_dotenv()
+
+from routers import journal, food, health_score, companion, sleep, typing
 
 
 APP_ENV = os.getenv("APP_ENV", "development")

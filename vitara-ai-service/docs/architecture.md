@@ -221,12 +221,24 @@ User Message
 - Metadata per dokumen: `{ user_id, timestamp, type }`
 
 **Input:** `{ user_id, message }`  
-**Output:**
+**Output (Streaming SSE):**
 
+*Event: `delta` (dikirim berkali-kali selama generasi kata/token)*
 ```json
 {
-  "response": "Sepertinya kamu cukup lelah hari ini, yuk istirahat sebentar...",
-  "recommendations": ["Tidur lebih awal", "Kurangi kafein"]
+  "token": "Sepertinya"
+}
+```
+
+*Event: `final` (dikirim satu kali di akhir stream)*
+```json
+{
+  "full_response": "Sepertinya kamu cukup lelah hari ini. Berdasarkan data tidurmu, kamu hanya tidur 5.5 jam semalam. Yuk coba istirahat lebih cepat malam ini!",
+  "recommendations": [
+    "Tidur lebih awal, target 7–8 jam",
+    "Kurangi kafein setelah jam 3 sore",
+    "Coba teknik pernapasan 4-7-8 sebelum tidur"
+  ]
 }
 ```
 

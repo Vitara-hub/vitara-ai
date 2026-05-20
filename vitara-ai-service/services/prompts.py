@@ -31,5 +31,4 @@ def get_user_chat_prompt(user_message: str, context_str: str = "") -> str:
     
     prompt += f"### PESAN PENGGUNA SAAT INI:\n\"{user_message}\"\n\n"
     prompt += "Silakan berikan respons dan rekomendasi terbaik Anda berdasarkan instruksi di atas."
-    print(prompt)
     return prompt

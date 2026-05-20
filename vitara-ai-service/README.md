@@ -210,7 +210,7 @@ Setelah server berjalan, akses dokumentasi interaktif di:
   }
   ```
 - **Response**: `{ "quality_score": 72 }`
-- **Catatan**: Menggunakan formula mock dinamis untuk saat ini. Otomatis menyimpan hasil analisis ke RAG jika `user_id` disertakan.
+- **Catatan**: Menggunakan formula mock dinamis untuk saat ini. Otomatis menyimpan hasil analisis ke RAG jika `user_id` disertakan. Menggunakan **daily upsert** — jika dipanggil beberapa kali dalam sehari, hanya data tidur terbaru yang disimpan.
 
 ### ⌨️ Typing Analysis
 **`POST /predict/typing`** — Mendeteksi tingkat stres berdasarkan pola pengetikan (keystroke dynamics).
@@ -225,7 +225,56 @@ Setelah server berjalan, akses dokumentasi interaktif di:
   }
   ```
 - **Response**: `{ "stress_score": 0.74 }`
-- **Catatan**: Menggunakan model LSTM (`typing_stress_lstm.h5`). Otomatis menyimpan hasil analisis ke RAG jika `user_id` disertakan.
+- **Catatan**: Menggunakan model LSTM (`typing_stress_lstm.h5`). Otomatis menyimpan hasil analisis ke RAG jika `user_id` disertakan. Menggunakan **daily upsert** — jika dipanggil beberapa kali dalam sehari, hanya data sesi terbaru yang disimpan.
+
+---
+
+## Sistem Memori RAG (ChromaDB)
+
+Setiap endpoint yang menghasilkan data kesehatan secara otomatis menyimpan hasilnya ke **ChromaDB** (vector database persisten). Sistem ini digunakan sebagai konteks oleh **LLM Companion** untuk memberikan respons yang personal dan berbasis riwayat kesehatan pengguna.
+
+### Strategi Penyimpanan
+
+Ada dua strategi penyimpanan yang diterapkan berdasarkan karakteristik masing-masing data:
+
+#### 🔄 Daily Upsert — Overwrite per Hari
+Digunakan untuk data yang hanya memiliki satu nilai relevan per hari. Jika endpoint dipanggil lagi pada hari yang sama, entry lama **diganti** dengan data terbaru. Menggunakan `doc_id` deterministik: `{tipe}_{user_id}_{YYYY-MM-DD}`.
+
+| Tipe Memori (`mem_type`) | Router | Keterangan |
+|---|---|---|
+| `sleep_prediction` | `/predict/sleep` | Hanya ada satu siklus tidur per malam |
+| `typing_prediction` | `/predict/typing` | Kondisi stres pengetikan terkini hari ini |
+| `health_score` | `/health/score` | Skor kesehatan harian (recalculated) |
+
+#### 📚 Keep ALL — Akumulasi
+Digunakan untuk data yang setiap entry-nya memiliki nilai unik dan informatif meskipun dikirim berkali-kali. Menggunakan `doc_id` random (UUID) setiap kali.
+
+| Tipe Memori (`mem_type`) | Router | Keterangan |
+|---|---|---|
+| `user_journal` | `/predict/journal` | Teks asli jurnal — setiap jurnal adalah narasi emosi yang unik |
+| `nlp_prediction` | `/predict/journal` | Hasil analisis emosi & stres dari setiap jurnal |
+| `food_prediction` | `/predict/food` | Setiap makanan berbeda, user bisa makan 3x/hari |
+| `user_chat` | `/companion/chat` | Setiap pesan percakapan adalah riwayat unik |
+| `companion_response` | `/companion/chat` | Setiap respons companion adalah riwayat unik |
+
+### Pengambilan Memori (Diversified Retrieval)
+
+LLM Companion menggunakan **`retrieve_diverse_memories()`** — bukan flat top-k — untuk memastikan setiap tipe memori selalu terwakili dalam konteks yang dikirim ke Gemini.
+
+```
+Untuk setiap mem_type → ambil top-2 paling semantically relevan
+                       → gabungkan & urutkan kronologis
+                       → kirim ke Gemini sebagai konteks RAG
+```
+
+Dengan strategi ini, konteks yang dibangun selalu mencakup riwayat dari **semua dimensi kesehatan** (jurnal, makanan, tidur, pengetikan, health score) secara proporsional, bukan didominasi oleh tipe yang paling sering dikirim.
+
+### Script Debug Memory
+
+```bash
+# Lihat semua memori tersimpan untuk user tertentu, dikelompokkan per tipe:
+uv run python scripts/check_memory.py <user_id>
+```
 
 ---
 

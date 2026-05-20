@@ -27,61 +27,6 @@ Repositori ini berisi layanan AI dan skrip _inference_ (inferensi) untuk proyek 
 - `requirements.txt`: Dependensi proyek Python.
 - `Dockerfile`: Konfigurasi kontainerisasi (Docker).
 
-## Menjalankan API Service
-
-Layanan API menggunakan **FastAPI** dan dapat dijalankan dengan **Uvicorn**.
-
-### 1. Menjalankan secara Lokal
-Pastikan virtual environment Anda sudah aktif, lalu jalankan:
-
-```bash
-# Menggunakan uvicorn secara langsung
-uvicorn main:app --reload
-
-# Atau menjalankan main.py
-python main.py
-```
-
-Setelah server berjalan, Anda dapat mengakses dokumentasi interaktif di:
-- **Swagger UI**: [http://localhost:8000/docs](http://localhost:8000/docs)
-- **ReDoc**: [http://localhost:8000/redoc](http://localhost:8000/redoc)
-
-### 2. Endpoints API (Batch 1)
-
-| Endpoint | Method | Deskripsi |
-| --- | --- | --- |
-| `/predict/journal` | POST | Menganalisis teks jurnal untuk mendeteksi emosi dan tingkat stres. |
-| `/predict/food` | POST | Mengklasifikasikan makanan dan mengestimasi kalori dari gambar. |
-
----
-
-## Testing & Integrasi
-
-### 1. Postman Collection
-Terdapat file koleksi Postman untuk mempermudah pengujian integrasi di:
-`docs/postman_collection.json`
-
-**Cara menggunakan:**
-1. Import file `docs/postman_collection.json` ke dalam aplikasi Postman.
-2. Pastikan server FastAPI sudah berjalan di `localhost:8000`.
-3. Jalankan request yang tersedia. Koleksi ini sudah dilengkapi dengan **Test Scripts** untuk memvalidasi respons dan memastikan **latency ≤ 2 detik**.
-
-### 2. Skrip Uji Integrasi LLM Companion (`scripts/test_companion.py`)
-Skrip ini digunakan untuk menguji integrasi **LLM Companion Service** (Gemini RAG SSE) dan **Memory Store** (ChromaDB) secara langsung melalui terminal tanpa perlu menjalankan server FastAPI secara penuh.
-
-**Cara Menjalankan:**
-```bash
-# Menggunakan uv (direkomendasikan):
-uv run python scripts/test_companion.py
-
-# Menggunakan python standar (pastikan virtual environment aktif):
-python scripts/test_companion.py
-```
-
-**Alur Pengujian:**
-- **Memory Store (ChromaDB)**: Memvalidasi penambahan data memori ke basis data vektor ChromaDB, pencarian semantik (retrieval), dan pembersihan data uji.
-- **LLM Companion Service**: Menguji deteksi `GEMINI_API_KEY` dari file `.env`, memvisualisasikan streaming respons token demi token (SSE) secara real-time di terminal, serta memverifikasi data rekomendasi tindakan kesehatan terstruktur di akhir alur.
-
 ---
 
 ## Contoh Penggunaan CLI (Inference Standalone)
@@ -199,5 +144,60 @@ Setelah dijalankan, buka browser dan akses: **[http://localhost:6006](http://loc
 3. **Histograms**: Untuk melihat distribusi bobot (_weights_) dan bias selama pelatihan.
 
 ---
+
+## Menjalankan API Service
+
+Layanan API menggunakan **FastAPI** dan dapat dijalankan dengan **Uvicorn**.
+
+### 1. Menjalankan secara Lokal
+Pastikan virtual environment Anda sudah aktif, lalu jalankan:
+
+```bash
+# Menggunakan uvicorn secara langsung
+uvicorn main:app --reload
+
+# Atau menjalankan main.py
+python main.py
+```
+
+Setelah server berjalan, Anda dapat mengakses dokumentasi interaktif di:
+- **Swagger UI**: [http://localhost:8000/docs](http://localhost:8000/docs)
+- **ReDoc**: [http://localhost:8000/redoc](http://localhost:8000/redoc)
+
+### 2. Endpoints API (Batch 1)
+
+| Endpoint | Method | Deskripsi |
+| --- | --- | --- |
+| `/predict/journal` | POST | Menganalisis teks jurnal untuk mendeteksi emosi dan tingkat stres. |
+| `/predict/food` | POST | Mengklasifikasikan makanan dan mengestimasi kalori dari gambar. |
+
+---
+
+## Testing & Integrasi
+
+### 1. Postman Collection
+Terdapat file koleksi Postman untuk mempermudah pengujian integrasi di:
+`docs/postman_collection.json`
+
+**Cara menggunakan:**
+1. Import file `docs/postman_collection.json` ke dalam aplikasi Postman.
+2. Pastikan server FastAPI sudah berjalan di `localhost:8000`.
+3. Jalankan request yang tersedia. Koleksi ini sudah dilengkapi dengan **Test Scripts** untuk memvalidasi respons dan memastikan **latency ≤ 2 detik**.
+
+### 2. Skrip Uji Integrasi LLM Companion (`scripts/test_companion.py`)
+Skrip ini digunakan untuk menguji integrasi **LLM Companion Service** (Gemini RAG SSE) dan **Memory Store** (ChromaDB) secara langsung melalui terminal tanpa perlu menjalankan server FastAPI secara penuh.
+
+**Cara Menjalankan:**
+```bash
+# Menggunakan uv (direkomendasikan):
+uv run python scripts/test_companion.py
+
+# Menggunakan python standar (pastikan virtual environment aktif):
+python scripts/test_companion.py
+```
+
+**Alur Pengujian:**
+- **Memory Store (ChromaDB)**: Memvalidasi penambahan data memori ke basis data vektor ChromaDB, pencarian semantik (retrieval), dan pembersihan data uji.
+- **LLM Companion Service**: Menguji deteksi `GEMINI_API_KEY` dari file `.env`, memvisualisasikan streaming respons token demi token (SSE) secara real-time di terminal, serta memverifikasi data rekomendasi tindakan kesehatan terstruktur di akhir alur.
 
 _Catatan: Ini adalah README sementara dan akan terus diperbarui seiring dengan pengembangan dan penerapan layanan API ini._

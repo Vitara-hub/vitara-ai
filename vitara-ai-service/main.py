@@ -5,10 +5,11 @@ import uvicorn
 import os
 # pyrefly: ignore [missing-import]
 from dotenv import load_dotenv
-from routers import journal, food, health_score
+from routers import journal, food, health_score, companion
 
 # Load environment variables dari file .env
 load_dotenv()
+
 
 APP_ENV = os.getenv("APP_ENV", "development")
 APP_PORT = int(os.getenv("APP_PORT", 8000))
@@ -33,6 +34,8 @@ app = FastAPI(
 app.include_router(journal.router)
 app.include_router(food.router)
 app.include_router(health_score.router)
+app.include_router(companion.router)
+
 
 @app.get("/")
 async def root():

@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 import asyncio
 from datetime import datetime
 
@@ -52,29 +53,48 @@ async def run_tests():
     except Exception as e:
         print(f"❌ MemoryStore Test failed: {e}")
         
-    # 2. Test LLM Companion Service & Gemini Integration
-    print("\n--- 2. Testing LLM Companion Service (Gemini RAG) ---")
+    # 2. Test LLM Companion Service & Gemini Integration (Streaming SSE)
+    print("\n--- 2. Testing LLM Companion Service (Gemini RAG SSE) ---")
     try:
         service = LLMCompanionService()
         test_user_2 = "user_chat_test"
         test_message = "Aku sedang merasa sangat stres karena deadline tugas besok, apa saranmu?"
         
         print(f"Is GEMINI_API_KEY Configured? {service.is_configured}")
-        print("Sending chat request to service...")
+        print("Sending SSE streaming chat request to service...")
         
-        # Run chat service
-        response = await service.chat(user_id=test_user_2, user_message=test_message)
+        print("\n--- Streaming Response (Real-time Token Visualizer) ---")
+        accumulated_text = ""
+        recommendations = []
         
-        print("\n--- Model Response Output ---")
-        print(f"Response:\n{response.get('response')}")
-        print("\nRecommendations:")
-        for rec in response.get("recommendations", []):
+        async for event_chunk in service.chat_stream(user_id=test_user_2, user_message=test_message):
+            # Parse SSE format
+            lines = event_chunk.strip().split("\n")
+            event_type = ""
+            data_content = ""
+            for line in lines:
+                if line.startswith("event:"):
+                    event_type = line.replace("event:", "").strip()
+                elif line.startswith("data:"):
+                    data_content = line.replace("data:", "").strip()
+            
+            if event_type == "delta" and data_content:
+                data_json = json.loads(data_content)
+                token = data_json.get("token", "")
+                accumulated_text += token
+                print(token, end="", flush=True)
+            elif event_type == "final" and data_content:
+                data_json = json.loads(data_content)
+                recommendations = data_json.get("recommendations", [])
+                
+        print("\n\n--- Recommendations Received ---")
+        for rec in recommendations:
             print(f" - {rec}")
-        print("----------------------------")
+        print("---------------------------------")
         
-        assert "response" in response, "Response key missing!"
-        assert "recommendations" in response, "Recommendations key missing!"
-        print("✅ LLM Companion Service test completed successfully!")
+        assert len(accumulated_text) > 0, "No response tokens were accumulated!"
+        assert len(recommendations) > 0, "No recommendations were generated!"
+        print("✅ LLM Companion SSE Service test completed successfully!")
         
         # Clean up test user memories
         store = MemoryStore()

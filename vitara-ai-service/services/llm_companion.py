@@ -1,5 +1,6 @@
 import os
 import json
+import asyncio
 from datetime import datetime
 from typing import Dict, Any, List
 # pyrefly: ignore [missing-import]
@@ -33,14 +34,15 @@ class LLMCompanionService:
         else:
             self.model = None
 
-    async def chat(self, user_id: str, user_message: str) -> Dict[str, Any]:
+    async def chat_stream(self, user_id: str, user_message: str):
         """
-        Processes a chat request using RAG pipeline:
-        1. Query ChromaDB for past memories
-        2. Format context with ContextBuilder
-        3. Assemble system and user prompts
-        4. Call Gemini with Structured JSON Output
-        5. Store new message and response into ChromaDB
+        Processes a chat request using RAG pipeline with SSE streaming.
+        1. Query ChromaDB for past memories.
+        2. Format context with ContextBuilder.
+        3. Assemble system and user prompts.
+        4. Call Gemini with Streaming (chunk-by-chunk) yielding 'delta' events.
+        5. Generate 2 to 4 health recommendations in a fast second call yielding 'final' event.
+        6. Store new message and response into ChromaDB.
         """
         # Step 1: Retrieve memories from ChromaDB using user_message as query
         query_text = ContextBuilder.construct_query_text(user_message)
@@ -55,56 +57,106 @@ class LLMCompanionService:
         # Step 4: Query Gemini API
         if not self.is_configured or not self.model:
             # Emulated local fallback mode for testing if API Key is not configured
-            fallback_response = {
-                "response": f"[Demo Mode] Halo! Saya menerima pesanmu: '{user_message}'. Saat ini GEMINI_API_KEY belum dikonfigurasi di file .env. Silakan tambahkan API key Anda untuk mendapatkan respons cerdas dari Gemini.",
-                "recommendations": [
-                    "Konfigurasikan GEMINI_API_KEY di file .env",
-                    "Pastikan koneksi internet aktif",
-                    "Coba jalankan ulang server setelah menambahkan key"
-                ]
-            }
+            fallback_text = f"[Demo Mode] Halo! Saya menerima pesanmu: '{user_message}'. Saat ini GEMINI_API_KEY belum dikonfigurasi di file .env. Silakan tambahkan API key Anda untuk mendapatkan respons cerdas dari Gemini."
+            fallback_recs = [
+                "Konfigurasikan GEMINI_API_KEY di file .env",
+                "Pastikan koneksi internet aktif",
+                "Coba jalankan ulang server setelah menambahkan key"
+            ]
+            
+            # Stream the fallback text in chunks to simulate typing speed
+            words = fallback_text.split(" ")
+            accumulated = ""
+            for i, word in enumerate(words):
+                token = word + (" " if i < len(words) - 1 else "")
+                accumulated += token
+                yield f"event: delta\ndata: {json.dumps({'token': token})}\n\n"
+                await asyncio.sleep(0.03) # 30ms delay
+                
+            yield f"event: final\ndata: {json.dumps({'full_response': accumulated, 'recommendations': fallback_recs})}\n\n"
+            
             # Save message even in demo mode
-            self._save_interaction_to_memory(user_id, user_message, fallback_response["response"])
-            return fallback_response
+            self._save_interaction_to_memory(user_id, user_message, accumulated)
+            return
 
+        accumulated_response = ""
         try:
-            # Query the model using Structured Output
-            response = self.model.generate_content(
+            # Step 4.1: Stream response from Gemini
+            response = await self.model.generate_content_async(
                 prompt,
                 generation_config=genai.GenerationConfig(
-                    response_mime_type="application/json",
-                    response_schema=CompanionResponseSchema,
                     temperature=0.7
-                )
+                ),
+                stream=True
             )
             
-            # Parse the response text
-            parsed_data = json.loads(response.text)
+            async for chunk in response:
+                try:
+                    token = chunk.text
+                except Exception:
+                    token = ""
+                    try:
+                        if chunk.candidates and chunk.candidates[0].content.parts:
+                            token = "".join(part.text for part in chunk.candidates[0].content.parts if hasattr(part, "text"))
+                    except Exception:
+                        pass
+                
+                if token:
+                    accumulated_response += token
+                    yield f"event: delta\ndata: {json.dumps({'token': token})}\n\n"
             
-            # Ensure the output has correct keys
-            final_response = {
-                "response": parsed_data.get("response", ""),
-                "recommendations": parsed_data.get("recommendations", [])
-            }
-            
-            # Step 5: Save current interaction to vector memory asynchronously/in background
-            self._save_interaction_to_memory(user_id, user_message, final_response["response"])
-            
-            return final_response
-            
+            # If for some reason we got an empty response, use a gentle fallback message
+            if not accumulated_response:
+                accumulated_response = "Maaf, asisten AI tidak memberikan respons. Silakan coba kirim pesan lain."
+                yield f"event: delta\ndata: {json.dumps({'token': accumulated_response})}\n\n"
+                
         except Exception as e:
-            print(f" [LLMCompanion] Error calling Gemini API: {e}")
-            # Robust fallback on error
-            err_response = {
-                "response": "Maaf, terjadi kesalahan saat menghubungi asisten AI saya. Namun, cobalah untuk tetap rileks, minum segelas air putih, dan beristirahat sejenak.",
-                "recommendations": [
-                    "Beri jeda sejenak sebelum mencoba lagi",
-                    "Pastikan koneksi internet stabil",
-                    "Minum air putih untuk menenangkan pikiran"
-                ]
-            }
-            self._save_interaction_to_memory(user_id, user_message, err_response["response"])
-            return err_response
+            print(f" [LLMCompanion] Error during Gemini streaming: {e}")
+            accumulated_response = "Maaf, terjadi kesalahan saat menghubungi asisten AI saya. Namun, cobalah untuk tetap rileks, minum segelas air putih, dan beristirahat sejenak."
+            yield f"event: delta\ndata: {json.dumps({'token': accumulated_response})}\n\n"
+
+        # Step 4.2: Fast second call to Gemini to generate Pydantic-validated recommendations
+        recommendations = []
+        try:
+            # We construct a swift recommendations prompt
+            rec_prompt = (
+                f"Berdasarkan percakapan berikut, berikan 2 sampai 4 rekomendasi tindakan kesehatan konkret, "
+                f"praktis, dan personal dalam bahasa Indonesia.\n\n"
+                f"Pesan Pengguna: {user_message}\n"
+                f"Tanggapan Asisten: {accumulated_response}\n\n"
+                f"Format output harus berupa list JSON berisi string rekomendasi."
+            )
+            
+            class RecommendationsSchema(BaseModel):
+                recommendations: List[str] = Field(description="2 to 4 concrete, actionable health recommendations in Indonesian.")
+                
+            rec_response = await self.model.generate_content_async(
+                rec_prompt,
+                generation_config=genai.GenerationConfig(
+                    response_mime_type="application/json",
+                    response_schema=RecommendationsSchema,
+                    temperature=0.3
+                )
+            )
+            parsed_recs = json.loads(rec_response.text)
+            recommendations = parsed_recs.get("recommendations", [])
+        except Exception as e:
+            print(f" [LLMCompanion] Error generating recommendations: {e}")
+            # Fallback recommendations
+            recommendations = [
+                "Beri jeda sejenak sebelum mencoba lagi",
+                "Pastikan koneksi internet stabil",
+                "Minum air putih untuk menenangkan pikiran"
+            ]
+            
+        # Yield the final SSE block
+        yield f"event: final\ndata: {json.dumps({'full_response': accumulated_response, 'recommendations': recommendations})}\n\n"
+        
+        # Step 5: Save current interaction to vector memory asynchronously in the background
+        try:
+            self._save_interaction_to_memory(user_id, user_message, accumulated_response)
+        except Exception as e:
+            print(f" [LLMCompanion] Error saving to vector memory: {e}")
 
     def _save_interaction_to_memory(self, user_id: str, user_message: str, companion_response: str):
         """

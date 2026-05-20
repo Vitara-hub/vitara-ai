@@ -8,14 +8,13 @@ Ini adalah aplikasi **FastAPI** yang menjadi inti dari layanan AI Vitara — men
 
 `vitara-ai-service` menyediakan empat endpoint utama yang aktif saat ini, dengan dua modul lainnya masih dalam pengembangan:
 
-| Modul | Endpoint | Model / Teknologi | Status |
-|---|---|---|---|
 | Journal Analysis | `POST /predict/journal` | NLP (TensorFlow `.keras`) | ✅ Aktif (mock mode jika model belum ada) |
 | Food Detection | `POST /predict/food` | MobileNetV2 TFLite | ✅ Aktif (model diperlukan) |
 | Health Score | `POST /health/score` | Rule-Based Engine | ✅ Aktif |
 | LLM Companion | `POST /companion/chat` | Gemini 2.5 Flash + ChromaDB | ✅ Aktif |
-| Sleep Analysis | `POST /predict/sleep` | — | 🚧 Dalam Pengembangan |
-| Typing Analysis | `POST /predict/typing` | — | 🚧 Dalam Pengembangan |
+| Sleep Analysis | `POST /predict/sleep` | Rule-Based / Mock | ✅ Aktif (mock mode) |
+| Typing Analysis | `POST /predict/typing` | LSTM (TensorFlow `.h5`) | ✅ Aktif |
+
 
 ---
 
@@ -32,7 +31,9 @@ vitara-ai-service/
 │   ├── journal.py          # /predict/journal — NLP analisis emosi & stres
 │   ├── food.py             # /predict/food   — Vision klasifikasi makanan
 │   ├── health_score.py     # /health/score   — Kalkulasi skor kesehatan + RAG sync
-│   └── companion.py        # /companion/chat — LLM Companion SSE streaming
+│   ├── companion.py        # /companion/chat — LLM Companion SSE streaming
+│   ├── sleep.py            # /predict/sleep  — Analisis tidur (mock)
+│   └── typing.py           # /predict/typing — Analisis pola mengetik (LSTM)
 │
 ├── services/               # Lapisan logika bisnis & layanan AI inti
 │   ├── health_score_service.py  # Rule-based engine untuk kalkulasi health score
@@ -45,7 +46,9 @@ vitara-ai-service/
 │   ├── journal.py          # JournalRequest, JournalResponse
 │   ├── food.py             # FoodResponse
 │   ├── health_score.py     # HealthScoreRequest, HealthScoreResponse, Breakdown
-│   └── companion.py        # CompanionChatRequest
+│   ├── companion.py        # CompanionChatRequest
+│   ├── sleep.py            # SleepPredictRequest, SleepPredictResponse
+│   └── typing.py           # TypingPredictRequest, TypingPredictResponse
 │
 ├── models/                 # Model machine learning (file .keras/.tflite)
 │   ├── nlp_model/          # Model NLP (nlp_model.keras)
@@ -189,7 +192,40 @@ Setelah server berjalan, akses dokumentasi interaktif di:
 - **Pipeline RAG**: Setiap permintaan secara otomatis mengambil memori relevan dari ChromaDB → membangun konteks → mengirim ke Gemini 2.5 Flash → menyimpan kembali interaksi ke ChromaDB.
 - **Catatan**: Memerlukan `GEMINI_API_KEY` di file `.env`. Jika tidak dikonfigurasi, berjalan dalam **Demo Mode**.
 
+### 💤 Sleep Analysis
+**`POST /predict/sleep`** — Menghitung skor kualitas tidur pengguna berdasarkan log tidur.
+
+- **Request**:
+  ```json
+  {
+    "duration_hours": 5.5,
+    "bedtime": "00:30",
+    "wake_time": "06:00",
+    "interruptions": 3,
+    "sleep_debt_hours": 2.0,
+    "user_id": "usr_abc123"
+  }
+  ```
+- **Response**: `{ "quality_score": 72 }`
+- **Catatan**: Menggunakan formula mock dinamis untuk saat ini. Otomatis menyimpan hasil analisis ke RAG jika `user_id` disertakan.
+
+### ⌨️ Typing Analysis
+**`POST /predict/typing`** — Mendeteksi tingkat stres berdasarkan pola pengetikan (keystroke dynamics).
+
+- **Request**:
+  ```json
+  {
+    "wpm": 58.3,
+    "backspace_rate": 0.12,
+    "inter_key_timings": [120, 98, 145, 87, 203, 110],
+    "user_id": "usr_abc123"
+  }
+  ```
+- **Response**: `{ "stress_score": 0.74 }`
+- **Catatan**: Menggunakan model LSTM (`typing_stress_lstm.h5`). Otomatis menyimpan hasil analisis ke RAG jika `user_id` disertakan.
+
 ---
+
 
 ## Inference Standalone (CLI)
 

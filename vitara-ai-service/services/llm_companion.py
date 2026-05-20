@@ -48,7 +48,16 @@ class LLMCompanionService:
             user_id=user_id,
             query_text=query_text,
             per_type_limit=2,
-            mem_types=["user_journal", "nlp_prediction", "health_score", "user_chat", "companion_response"]
+            mem_types=[
+                "user_journal",       # Teks asli jurnal pengguna
+                "nlp_prediction",     # Hasil analisis emosi & stres (journal)
+                "food_prediction",    # Hasil analisis makanan (vision)
+                "sleep_prediction",   # Hasil analisis kualitas tidur
+                "typing_prediction",  # Hasil analisis stres dari typing
+                "health_score",       # Skor kesehatan keseluruhan
+                "user_chat",          # Riwayat pesan percakapan pengguna
+                "companion_response", # Riwayat respons companion
+            ]
         )
         
         # Step 2: Stitch memories into a cohesive context string

@@ -118,7 +118,16 @@ class MemoryStore:
             return []
 
         if mem_types is None:
-            mem_types = ["nlp_prediction", "health_score", "user_chat", "companion_response"]
+            mem_types = [
+                "user_journal",       # Teks asli jurnal pengguna
+                "nlp_prediction",     # Hasil analisis emosi & stres (journal)
+                "food_prediction",    # Hasil analisis makanan (vision)
+                "sleep_prediction",   # Hasil analisis kualitas tidur
+                "typing_prediction",  # Hasil analisis stres dari pengetikan
+                "health_score",       # Skor kesehatan keseluruhan
+                "user_chat",          # Riwayat pesan percakapan pengguna
+                "companion_response", # Riwayat respons companion
+            ]
 
         all_memories: Dict[str, Dict[str, Any]] = {}  # keyed by id to avoid duplicates
 

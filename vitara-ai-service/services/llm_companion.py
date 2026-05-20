@@ -81,7 +81,7 @@ class LLMCompanionService:
         try:
             # Step 4.1: Stream response from Gemini using Client.aio
             response = await self.client.aio.models.generate_content_stream(
-                model="gemini-2.5-flash",
+                model="gemini-3.1-flash-lite",
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     system_instruction=SYSTEM_INSTRUCTION,
@@ -121,7 +121,7 @@ class LLMCompanionService:
                 recommendations: List[str] = Field(description="2 to 4 concrete, actionable health recommendations in Indonesian.")
                 
             rec_response = await self.client.aio.models.generate_content(
-                model="gemini-2.5-flash",
+                model="gemini-3.1-flash-lite",
                 contents=rec_prompt,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",

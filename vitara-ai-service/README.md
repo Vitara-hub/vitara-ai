@@ -140,6 +140,9 @@ CHROMA_DB_PATH=./data/chroma_db
 # Menggunakan uvicorn secara langsung (dengan hot-reload)
 uvicorn main:app --reload
 
+# Menggunakan uv run (direkomendasikan)
+uv run uvicorn main:app --reload
+
 # Atau menjalankan main.py
 python main.py
 ```

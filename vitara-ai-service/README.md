@@ -366,3 +366,37 @@ Akses di browser: **[http://localhost:6006](http://localhost:6006)**
 | **Scalars** | Pantau grafik `accuracy` & `loss`. Waspadai overfitting (training loss ↓, validation loss ↑). |
 | **Graphs** | Periksa struktur arsitektur model secara visual. |
 | **Histograms** | Lihat distribusi _weights_ & _bias_ selama pelatihan. |
+
+---
+
+## Deployment (Hugging Face Spaces)
+
+Layanan ini dikonfigurasi untuk dapat di-deploy secara gratis ke **Hugging Face Spaces** menggunakan **Docker**.
+
+### Prasyarat Deployment
+1. Buat Space baru di Hugging Face dengan nama `vitara-ai-service`.
+2. Pilih SDK **Docker** (pilih Blank template).
+3. Buat **Access Token (Write)** di Hugging Face (Settings -> Access Tokens).
+4. Lakukan clone repositori Space tersebut di luar folder `vitara-ai` Anda:
+   ```bash
+   cd "/path/to/parent-folder"
+   git clone https://huggingface.co/spaces/bagususwanto/vitara-ai-service
+   ```
+
+### Cara Deploy & Update Otomatis
+Gunakan skrip otomatisasi [deploy_hf.sh](scripts/deploy_hf.sh) yang berada di dalam folder `scripts/` untuk menyalin perubahan, mengemas, dan mengunggahnya ke Hugging Face:
+
+```bash
+# 1. Masuk ke folder service utama Anda
+cd "/path/to/parent-folder/vitara-ai/vitara-ai-service"
+
+# 2. Berikan izin eksekusi pada skrip (cukup sekali saja)
+chmod +x scripts/deploy_hf.sh
+
+# 3. Jalankan skrip deploy dengan pesan commit kustom Anda
+./scripts/deploy_hf.sh "Menambahkan fitur baru atau update model"
+```
+
+### Konfigurasi Environment Secrets
+Pastikan Anda menambahkan Environment Secrets berikut di menu **Settings -> Variables and secrets** pada halaman Space Anda:
+- `GEMINI_API_KEY`: API Key dari Google AI Studio untuk LLM Companion.

@@ -35,14 +35,14 @@ COPY --from=builder /install /usr/local
 
 # Buat user non-root untuk keamanan (wajib di Hugging Face Spaces)
 RUN useradd -m -u 1000 vitara
+
+# Buat direktori untuk ChromaDB dan berikan hak akses /app ke user vitara
+RUN mkdir -p data/chroma_db && chown -R vitara:vitara /app
+
 USER vitara
 
 # Copy seluruh source code aplikasi
 COPY --chown=vitara:vitara . .
-
-# Buat direktori untuk ChromaDB persistent storage
-# Catatan: Di HF Spaces tier gratis, data ini bersifat ephemeral (ter-reset saat restart)
-RUN mkdir -p data/chroma_db
 
 # ── Environment Defaults ──────────────────────────────────────────────────────
 # APP_ENV diset ke production (menonaktifkan Swagger UI /docs dan /redoc)

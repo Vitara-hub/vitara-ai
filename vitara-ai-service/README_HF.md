@@ -6,7 +6,7 @@ colorTo: blue
 sdk: docker
 pinned: false
 license: mit
-short_description: AI health inference service for Vitara app (FastAPI + TensorFlow + Gemini RAG)
+short_description: AI backend for Vitara app (FastAPI + RAG)
 ---
 
 # Vitara AI Service 🏃

@@ -9,6 +9,7 @@ rsync -av \
   --exclude='.venv' \
   --exclude='venv' \
   --exclude='data' \
+  --exclude='logs' \
   --exclude='.git' \
   --exclude='__pycache__' \
   --exclude='.env' \

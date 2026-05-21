@@ -1,0 +1,46 @@
+# Python virtual environments
+.venv/
+venv/
+env/
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# Environment variables (jangan pernah include di image!)
+.env
+*.env
+
+# Data & database lokal (akan dibuat fresh di container)
+data/
+logs/
+
+# macOS system files
+.DS_Store
+**/.DS_Store
+
+# Jupyter Notebook files
+*.ipynb
+notebooks/
+
+# Development tools & IDE configs
+.vscode/
+.idea/
+*.code-workspace
+
+# Git
+.git/
+.gitignore
+
+# Dokumentasi & sample (tidak diperlukan di production)
+docs/
+sample/
+
+# File temporary
+*.tmp
+*.log
+
+# Test & scripts (opsional — hapus baris ini jika ingin include scripts/)
+# scripts/

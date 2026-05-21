@@ -36,6 +36,33 @@ Vitara AI Service adalah backend berbasis **FastAPI** yang meng-expose endpoint 
 
 **Tugas:** Menganalisis teks jurnal pengguna untuk mendeteksi emosi dominan dan tingkat stres.
 
+#### A. Rencana Transisi (IndoBERT Transformer Model — Baru/Direncanakan)
+
+Untuk meningkatkan akurasi analisis emosi dan tingkat stres dengan pemahaman semantik Bahasa Indonesia yang lebih baik, sistem direncanakan beralih ke arsitektur berbasis **IndoBERT** (`indobenchmark/indobert-base-p2`).
+
+```
+Input (raw text)
+  └─► IndoBERT Tokenizer (BPE)
+        └─► IndoBERT Encoder (12 Transformer Blocks)
+              └─► Pooling ([CLS] Token Representation / 768-d)
+                    ├─► Emotion Head (Dense + Dropout) → softmax (multi-class emotion)
+                    └─► Stress Head (Dense + Dropout)  → sigmoid (regression 0–1)
+```
+
+**Spesifikasi IndoBERT:**
+| Komponen | Spesifikasi / Tipe | Keterangan |
+|----------|-------------------|------------|
+| **Base Model** | `indobenchmark/indobert-base-p2` | Pre-trained BERT model untuk Bahasa Indonesia (124M params) |
+| **Tokenizer** | IndoBERT Tokenizer (BPE) | Tokenisasi teks disesuaikan kosa kata Bahasa Indonesia |
+| **Emotion Head** | Dense (768) ➔ Dropout (0.1) ➔ Dense (5) ➔ Softmax | Klasifikasi 5 kelas emosi (`happy`, `sad`, `anxious`, `angry`, `neutral`) |
+| **Stress Head** | Dense (768) ➔ Dropout (0.1) ➔ Dense (1) ➔ Sigmoid | Regresi nilai tingkat stres (skala 0.0 - 1.0) |
+| **Loss Function** | Multi-Task Loss | Kombinasi `WeightedFocalLoss` (untuk emosi) + `MeanSquaredError` / `HuberLoss` (untuk stres) |
+| **Optimizer** | AdamW | Dengan warm-up steps dan linear learning rate decay |
+
+#### B. Model Awal / Baseline (BiLSTM + Attention Layer — Aktif/Legacy)
+
+Pendekatan baseline saat ini menggunakan arsitektur recurrent neural network (RNN) berbasis Keras/TensorFlow yang ringan untuk inferensi awal:
+
 ```
 Input (raw text)
   └─► TextVectorization
@@ -66,7 +93,7 @@ Input (raw text)
 ```
 
 > 📌 **Catatan Output:** 
-> *   Nilai `emotion` dan `stress_level` diprediksi secara langsung oleh model NLP (BiLSTM).
+> *   Nilai `emotion` dan `stress_level` diprediksi secara langsung oleh model NLP (BiLSTM/IndoBERT).
 > *   Nilai `topics` diekstraksi di tingkat backend (*post-processing* menggunakan rule-based/keyword matching atau LLM) untuk mendukung konteks RAG pada LLM Companion. Oleh karena itu, data ini tidak memerlukan pelabelan pada dataset training model.
 
 

@@ -14,3 +14,4 @@ vitara-ai-service/.env
 vitara-ai-service/data/
 /data/
 
+vitara-ai-service/models/nlp_model/vitara_nlp_indobert*

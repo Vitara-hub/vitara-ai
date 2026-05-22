@@ -168,16 +168,14 @@ def show_keystroke_dashboard():
     else:
         st.warning("🐢 Users show slow typing behavior.")
 
-    # =========================================
     # DECORATION
-    # =========================================
     # col1, col2, col3 = st.columns([1,3,1])
 
     # with col1:
-    #     st.image("Assets/typing.png", width=90)
+    #     st.image("", width=90)
 
     # with col3:
-    #     st.image("Assets/terminal.png", width=90)
+    #     st.image("", width=90)
 
     # USER SUMMARY
     st.subheader("👤 User Typing Summary")

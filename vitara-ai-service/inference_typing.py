@@ -3,12 +3,12 @@ import sys
 import json
 import numpy as np
 # pyrefly: ignore [missing-import]
-from ai_edge_litert.interpreter import Interpreter
+import onnxruntime as ort
 
 class TypingStressPredictor:
     """
-    Predictor class for Typing Stress LSTM model using LiteRT (TFLite).
-    Loads the TFLite model and preprocesses incoming inputs matching the API contract
+    Predictor class for Typing Stress LSTM model using ONNX Runtime.
+    Loads the ONNX model and preprocesses incoming inputs matching the API contract
     to generate the final stress score.
     """
     def __init__(self, model_path=None, max_seq_len=50):
@@ -18,51 +18,51 @@ class TypingStressPredictor:
         # Determine default model path if not specified
         if model_path is None:
             base_dir = os.path.dirname(os.path.abspath(__file__))
-            model_path = os.path.join(base_dir, "models", "typing_model", "typing_stress_lstm.tflite")
+            model_path = os.path.join(base_dir, "models", "typing_model", "typing_stress_lstm.onnx")
         
         if not os.path.exists(model_path):
             raise FileNotFoundError(f"Typing stress model not found at: {model_path}")
             
         print(f"Loading typing stress model from: {model_path}", file=sys.stderr)
         
-        # Load TFLite model and allocate tensors
-        self.interpreter = Interpreter(model_path=model_path)
-        self.interpreter.allocate_tensors()
+        # Initialize ONNX inference session
+        self.session = ort.InferenceSession(model_path)
         
-        # Identify input details dynamically by shape
-        input_details = self.interpreter.get_input_details()
-        self.seq_input_index = None
-        self.static_input_index = None
+        # Identify input names dynamically by shape
+        inputs = self.session.get_inputs()
+        self.seq_input_name = None
+        self.static_input_name = None
         
-        for detail in input_details:
-            shape = list(detail['shape'])
+        for inp in inputs:
+            shape = list(inp.shape)
+            # seq_input shape is [None, 50, 1] or similar (second dimension is max_seq_len)
             if len(shape) == 3 and shape[1] == self.max_seq_len:
-                self.seq_input_index = detail['index']
+                self.seq_input_name = inp.name
+            # static_input shape is [None, 3] or similar (second dimension is 3)
             elif len(shape) == 2 and shape[1] == 3:
-                self.static_input_index = detail['index']
+                self.static_input_name = inp.name
                 
         # Robust fallback if shape matching fails
-        if self.seq_input_index is None or self.static_input_index is None:
-            if len(input_details) >= 2:
-                if np.prod(input_details[0]['shape']) > np.prod(input_details[1]['shape']):
-                    self.seq_input_index = input_details[0]['index']
-                    self.static_input_index = input_details[1]['index']
+        if self.seq_input_name is None or self.static_input_name is None:
+            if len(inputs) >= 2:
+                if "seq" in inputs[0].name.lower() or "input_1" in inputs[0].name.lower():
+                    self.seq_input_name = inputs[0].name
+                    self.static_input_name = inputs[1].name
                 else:
-                    self.seq_input_index = input_details[1]['index']
-                    self.static_input_index = input_details[0]['index']
+                    self.seq_input_name = inputs[1].name
+                    self.static_input_name = inputs[0].name
             else:
-                raise ValueError("Expected at least 2 input details in the TFLite model.")
+                raise ValueError("Expected at least 2 input layers in the ONNX model.")
                 
-        output_details = self.interpreter.get_output_details()
-        self.output_index = output_details[0]['index']
+        self.output_name = self.session.get_outputs()[0].name
         
         # Robust fallback scaling parameters (Standardization: (x - mean) / std)
         # Calibrated using actual training set distributions
         self.seq_mean = 560.21773
         self.seq_std = 4842.44977
         
-        self.static_means = np.array([42.33, 0.206, 0.041])  # wpm, typing_variance, backspace_rate
-        self.static_stds = np.array([10.72, 0.455, 0.014])
+        self.static_means = np.array([42.33, 0.206, 0.041], dtype=np.float32)  # wpm, typing_variance, backspace_rate
+        self.static_stds = np.array([10.72, 0.455, 0.014], dtype=np.float32)
 
     def preprocess(self, wpm, backspace_rate, inter_key_timings):
         """
@@ -114,7 +114,7 @@ class TypingStressPredictor:
         # Reshape to expected input shape: (batch_size, num_features) -> (1, 3)
         X_static = np.expand_dims(scaled_static, axis=0)
 
-        return X_seq, X_static
+        return X_seq.astype(np.float32), X_static.astype(np.float32)
 
     def predict(self, wpm, backspace_rate, inter_key_timings):
         """
@@ -123,12 +123,12 @@ class TypingStressPredictor:
         X_seq, X_static = self.preprocess(wpm, backspace_rate, inter_key_timings)
         
         # Run inference
-        self.interpreter.set_tensor(self.seq_input_index, X_seq)
-        self.interpreter.set_tensor(self.static_input_index, X_static)
-        self.interpreter.invoke()
-        
-        prediction = self.interpreter.get_tensor(self.output_index)
-        stress_score = float(prediction[0][0])
+        ort_inputs = {
+            self.seq_input_name: X_seq,
+            self.static_input_name: X_static
+        }
+        prediction = self.session.run([self.output_name], ort_inputs)
+        stress_score = float(prediction[0][0][0])
         
         return stress_score
 
@@ -147,7 +147,7 @@ def main():
         backspace_rate = float(data.get("backspace_rate", 0.0))
         inter_key_timings = data.get("inter_key_timings", [])
 
-        # Initialize predictor (using max_seq_len = 50 as defined in the compiled H5 model structure)
+        # Initialize predictor (using max_seq_len = 50 as defined in the compiled model structure)
         predictor = TypingStressPredictor(model_path=model_path, max_seq_len=50)
         
         # Run prediction

@@ -2,65 +2,13 @@ import os
 import sys
 import json
 import numpy as np
-import tensorflow as tf
-
-# =====================================================================
-# KERAS 3 LOADING COMPATIBILITY WRAPPERS
-# Used to bypass dynamic masking/quantization configuration serialization
-# bugs in older/newer Keras 3 versions during H5 load.
-# =====================================================================
-
-class NotEqual(tf.keras.layers.Layer):
-    def __init__(self, **kwargs):
-        super(NotEqual, self).__init__(**kwargs)
-    def __call__(self, *args, **kwargs):
-        # Extract the tensor input and run the call, bypassing positional 0.0 value error
-        tensor_input = args[0]
-        return super(NotEqual, self).__call__(tensor_input, **kwargs)
-    def call(self, x):
-        return tf.math.not_equal(x, 0.0)
-
-class Any(tf.keras.layers.Layer):
-    def __init__(self, axis=-1, keepdims=False, **kwargs):
-        super(Any, self).__init__(**kwargs)
-        self.axis = axis
-        self.keepdims = keepdims
-    def call(self, x):
-        return tf.reduce_any(x, axis=self.axis, keepdims=self.keepdims)
-    def get_config(self):
-        config = super(Any, self).get_config()
-        config.update({'axis': self.axis, 'keepdims': self.keepdims})
-        return config
-
-class PatchedDense(tf.keras.layers.Dense):
-    def __init__(self, *args, **kwargs):
-        kwargs.pop('quantization_config', None)
-        super(PatchedDense, self).__init__(*args, **kwargs)
-
-class PatchedLSTM(tf.keras.layers.LSTM):
-    def __init__(self, *args, **kwargs):
-        kwargs.pop('quantization_config', None)
-        super(PatchedLSTM, self).__init__(*args, **kwargs)
-
-class PatchedMasking(tf.keras.layers.Masking):
-    def __init__(self, *args, **kwargs):
-        kwargs.pop('quantization_config', None)
-        super(PatchedMasking, self).__init__(*args, **kwargs)
-
-# Registry of custom objects to supply to tf.keras.models.load_model
-CUSTOM_OBJECTS = {
-    'NotEqual': NotEqual,
-    'Any': Any,
-    'Dense': PatchedDense,
-    'LSTM': PatchedLSTM,
-    'Masking': PatchedMasking
-}
-
+# pyrefly: ignore [missing-import]
+from ai_edge_litert.interpreter import Interpreter
 
 class TypingStressPredictor:
     """
-    Predictor class for Typing Stress LSTM model.
-    Loads the H5 model and preprocesses incoming inputs matching the API contract
+    Predictor class for Typing Stress LSTM model using LiteRT (TFLite).
+    Loads the TFLite model and preprocesses incoming inputs matching the API contract
     to generate the final stress score.
     """
     def __init__(self, model_path=None, max_seq_len=50):
@@ -70,13 +18,43 @@ class TypingStressPredictor:
         # Determine default model path if not specified
         if model_path is None:
             base_dir = os.path.dirname(os.path.abspath(__file__))
-            model_path = os.path.join(base_dir, "models", "typing_model", "typing_stress_lstm.h5")
+            model_path = os.path.join(base_dir, "models", "typing_model", "typing_stress_lstm.tflite")
         
         if not os.path.exists(model_path):
             raise FileNotFoundError(f"Typing stress model not found at: {model_path}")
             
         print(f"Loading typing stress model from: {model_path}", file=sys.stderr)
-        self.model = tf.keras.models.load_model(model_path, custom_objects=CUSTOM_OBJECTS)
+        
+        # Load TFLite model and allocate tensors
+        self.interpreter = Interpreter(model_path=model_path)
+        self.interpreter.allocate_tensors()
+        
+        # Identify input details dynamically by shape
+        input_details = self.interpreter.get_input_details()
+        self.seq_input_index = None
+        self.static_input_index = None
+        
+        for detail in input_details:
+            shape = list(detail['shape'])
+            if len(shape) == 3 and shape[1] == self.max_seq_len:
+                self.seq_input_index = detail['index']
+            elif len(shape) == 2 and shape[1] == 3:
+                self.static_input_index = detail['index']
+                
+        # Robust fallback if shape matching fails
+        if self.seq_input_index is None or self.static_input_index is None:
+            if len(input_details) >= 2:
+                if np.prod(input_details[0]['shape']) > np.prod(input_details[1]['shape']):
+                    self.seq_input_index = input_details[0]['index']
+                    self.static_input_index = input_details[1]['index']
+                else:
+                    self.seq_input_index = input_details[1]['index']
+                    self.static_input_index = input_details[0]['index']
+            else:
+                raise ValueError("Expected at least 2 input details in the TFLite model.")
+                
+        output_details = self.interpreter.get_output_details()
+        self.output_index = output_details[0]['index']
         
         # Robust fallback scaling parameters (Standardization: (x - mean) / std)
         # Calibrated using actual training set distributions
@@ -145,7 +123,11 @@ class TypingStressPredictor:
         X_seq, X_static = self.preprocess(wpm, backspace_rate, inter_key_timings)
         
         # Run inference
-        prediction = self.model.predict([X_seq, X_static], verbose=0)
+        self.interpreter.set_tensor(self.seq_input_index, X_seq)
+        self.interpreter.set_tensor(self.static_input_index, X_static)
+        self.interpreter.invoke()
+        
+        prediction = self.interpreter.get_tensor(self.output_index)
         stress_score = float(prediction[0][0])
         
         return stress_score

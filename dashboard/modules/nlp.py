@@ -7,10 +7,7 @@ import matplotlib.pyplot as plt
 def show_nlp_dashboard():
 
     # LOAD DATA
-    df_epo = pd.read_csv('Dataset/NLP/df_epo_raw.csv')
-    df_llm = pd.read_csv('Dataset/NLP/df_llm_raw.csv')
-
-    df = pd.concat([df_epo, df_llm], ignore_index=True)
+    df = pd.read_csv("https://drive.google.com/uc?id=13plFZrIVLtrR0fd7rZX1wxL4pbYBrkO2")
 
     #LOAD ASSETS
     emotion_colors = {
@@ -130,7 +127,7 @@ def show_nlp_dashboard():
         st.image("assets/anxious.png", width=90)
     
     with col2:
-        text = " ".join(df['text'].astype(str)).lower()
+        text = " ".join(df['clean_text'].astype(str)).lower()
 
         custom_stopwords = {
             'aku', 'saya', 'dan', 'yang', 'orang', 'rumah', 'di rumah',
@@ -165,7 +162,7 @@ def show_nlp_dashboard():
     cols = st.columns(len(emotions))
 
     for i, emotion in enumerate(emotions):
-        sample_text = df[df['emotion_label'] == emotion]['text'].sample(3).tolist()
+        sample_text = df[df['emotion_label'] == emotion]['clean_text'].sample(3).tolist()
 
         with cols[i]:
             st.image(emotion_images[emotion], width=80)

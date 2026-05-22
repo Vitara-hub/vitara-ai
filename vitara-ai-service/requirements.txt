@@ -5,7 +5,7 @@ pandas==2.2.2
 onnxruntime
 transformers
 tokenizers
-ai-edge-litert
+ai-edge-litert==1.0.1
 setuptools<70.0.0
 fastapi
 uvicorn

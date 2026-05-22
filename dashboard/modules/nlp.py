@@ -27,7 +27,7 @@ def show_nlp_dashboard():
     }
 
     # SIDEBAR FILTER
-    st.sidebar.subheader("NLP Filter")
+    st.sidebar.subheader("😊 Emotion Filter")
 
     selected_emotion = st.sidebar.multiselect(
         "Filter Emotion",

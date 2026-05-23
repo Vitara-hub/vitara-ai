@@ -46,7 +46,7 @@ is_genai_configured = api_key is not None and api_key != "your_gemini_api_key_he
 genai_client = genai.Client(api_key=api_key) if is_genai_configured else None
 
 # Model untuk ekstraksi topik
-TOPIC_MODEL_NAME = os.getenv("TOPIC_MODEL_NAME", "gemma-4-31b")
+TOPIC_MODEL_NAME = os.getenv("TOPIC_MODEL_NAME", "gemma-4-31b-it")
 
 class TopicExtractionResponse(BaseModel):
     topics: List[str] = Field(description="List of 1 to 3 keywords/topics extracted from the text.")

@@ -11,7 +11,7 @@ Ini adalah aplikasi **FastAPI** yang menjadi inti dari layanan AI Vitara — men
 | Journal Analysis | `POST /predict/journal` | NLP (ONNX + Tokenizer Lokal) | ✅ Aktif |
 | Food Detection | `POST /predict/food` | MobileNetV2 TFLite | ✅ Aktif (model diperlukan) |
 | Health Score | `POST /health/score` | Rule-Based Engine | ✅ Aktif |
-| LLM Companion | `POST /companion/chat` | Gemini 2.5 Flash + ChromaDB | ✅ Aktif |
+| LLM Companion | `POST /companion/chat` | Gemini 3.1 Flash (Lite) + ChromaDB | ✅ Aktif |
 | Sleep Analysis | `POST /predict/sleep` | Rule-Based / Mock | ✅ Aktif (mock mode) |
 | Typing Analysis | `POST /predict/typing` | LSTM ONNX | ✅ Aktif |
 
@@ -128,6 +128,7 @@ APP_PORT=8000
 
 # LLM Companion Configuration (wajib untuk fitur Companion)
 GEMINI_API_KEY=your_gemini_api_key_here
+COMPANION_MODEL_NAME=gemini-3.1-flash-lite  # Opsional, default: gemini-3.1-flash-lite
 
 # Vector Database (RAG)
 CHROMA_DB_PATH=./data/chroma_db
@@ -193,7 +194,7 @@ Setelah server berjalan, akses dokumentasi interaktif di:
 - **Response**: Stream SSE dengan dua jenis event:
   - `event: delta` — token teks demi token secara real-time.
   - `event: final` — respons lengkap beserta 2-4 rekomendasi kesehatan terstruktur.
-- **Pipeline RAG**: Setiap permintaan secara otomatis mengambil memori relevan dari ChromaDB → membangun konteks → mengirim ke Gemini 2.5 Flash → menyimpan kembali interaksi ke ChromaDB.
+- **Pipeline RAG**: Setiap permintaan secara otomatis mengambil memori relevan dari ChromaDB → membangun konteks → mengirim ke Gemini 3.1 Flash (Lite) (atau model yang dikonfigurasi) → menyimpan kembali interaksi ke ChromaDB.
 - **Catatan**: Memerlukan `GEMINI_API_KEY` di file `.env`. Jika tidak dikonfigurasi, berjalan dalam **Demo Mode**.
 
 ### 💤 Sleep Analysis

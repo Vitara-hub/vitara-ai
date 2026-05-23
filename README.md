@@ -26,7 +26,7 @@ Berikut modul AI yang telah dikembangkan dan di-serve pada layanan API:
 | **NLP (Journal Analysis)** | `POST /predict/journal` | ✅ Aktif | Analisis emosi & tingkat stres dari teks jurnal menggunakan model IndoBERT (ONNX). |
 | **Vision (Food Detection)** | `POST /predict/food` | ✅ Aktif | Klasifikasi makanan & -estimasi kalori dari gambar (MobileNetV2 TFLite). |
 | **Health Score** | `POST /health/score` | ✅ Aktif | Kalkulasi skor kesehatan holistik berbasis **rule-based engine** (deterministic). |
-| **LLM Companion** | `POST /companion/chat` | ✅ Aktif | Asisten kesehatan AI berbasis **Gemini 2.5 Flash + RAG (ChromaDB)** dengan SSE streaming. |
+| **LLM Companion** | `POST /companion/chat` | ✅ Aktif | Asisten kesehatan AI berbasis **Gemini 3.1 Flash (Lite) + RAG (ChromaDB)** dengan SSE streaming. |
 | **Sleep Pattern** | `POST /predict/sleep` | ✅ Aktif (mock mode) | Analisis kualitas dan pola tidur pengguna (formula mock dinamis). |
 | **Typing Pattern** | `POST /predict/typing` | ✅ Aktif | Deteksi tingkat stres melalui dinamika pola pengetikan menggunakan model LSTM (ONNX). |
 

@@ -63,13 +63,30 @@ class NLPStressPredictor:
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: python inference_nlp.py '<text_to_analyze>' [model_path] [tokenizer_path]", file=sys.stderr)
+        print("Usage: python inference_nlp.py '<text_to_analyze_or_json_file>' [model_path] [tokenizer_path]", file=sys.stderr)
         print("Example: python inference_nlp.py 'Hari ini saya merasa sangat cemas karena tugas menumpuk.'", file=sys.stderr)
+        print("Example: python inference_nlp.py sample/nlp/happy_journal.json", file=sys.stderr)
         sys.exit(1)
 
-    text = sys.argv[1]
+    text_arg = sys.argv[1]
     model_path = sys.argv[2] if len(sys.argv) > 2 else None
     tokenizer_path = sys.argv[3] if len(sys.argv) > 3 else None
+
+    # Check if the argument is a JSON file and load the text from it
+    if os.path.exists(text_arg) and text_arg.endswith('.json'):
+        try:
+            with open(text_arg, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                if isinstance(data, dict) and 'text' in data:
+                    text = data['text']
+                else:
+                    print(f"Error: JSON file {text_arg} must contain a 'text' key", file=sys.stderr)
+                    sys.exit(1)
+        except Exception as e:
+            print(f"Error reading JSON file {text_arg}: {e}", file=sys.stderr)
+            sys.exit(1)
+    else:
+        text = text_arg
 
     try:
         predictor = NLPStressPredictor(model_path=model_path, tokenizer_path=tokenizer_path)

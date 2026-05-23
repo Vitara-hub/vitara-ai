@@ -153,22 +153,65 @@ Model pendeteksi emosi dan tingkat stres pengguna berdasarkan teks jurnal menggu
 
 ```bash
 # Jika virtual environment sudah aktif:
-python inference_nlp.py '<teks_jurnal>' [path_ke_model_onnx] [path_ke_folder_tokenizer]
+python inference_nlp.py '<teks_jurnal_atau_path_json>' [path_ke_model_onnx] [path_ke_folder_tokenizer]
 
 # Atau menggunakan uv run (otomatis mengaktifkan venv):
-uv run python inference_nlp.py '<teks_jurnal>' [path_ke_model_onnx] [path_ke_folder_tokenizer]
+uv run python inference_nlp.py '<teks_jurnal_atau_path_json>' [path_ke_model_onnx] [path_ke_folder_tokenizer]
 ```
 
 ### Keterangan Parameter
 
-- `<teks_jurnal>`: Teks jurnal dalam Bahasa Indonesia yang ingin dianalisis emosi dan tingkat stresnya.
+- `<teks_jurnal_atau_path_json>`: Teks jurnal dalam Bahasa Indonesia yang ingin dianalisis, ATAU lokasi/path file JSON yang berisi teks jurnal (contoh: `sample/nlp/happy_journal.json`).
 - `[path_ke_model_onnx]`: _(Opsional)_ Lokasi file model `.onnx`. Secara default mencari ke `models/nlp_model/vitara_nlp_indobert.onnx`.
 - `[path_ke_folder_tokenizer]`: _(Opsional)_ Lokasi folder tokenizer. Secara default mencari ke `models/nlp_model/tokenizer/`.
 
-### Contoh Penggunaan
+### Pengujian Menggunakan Data Sampel
+
+Telah disediakan beberapa data sampel di folder `sample/nlp/` untuk memudahkan verifikasi emosi dan tingkat stres.
+
+**1. Menggunakan Sampel Emosi Senang (Happy - Low Stress):**
+```bash
+# Menggunakan python standar (venv aktif):
+python inference_nlp.py sample/nlp/happy_journal.json
+
+# Menggunakan uv run:
+uv run python inference_nlp.py sample/nlp/happy_journal.json
+```
+
+**2. Menggunakan Sampel Emosi Cemas (Anxious - High Stress):**
+```bash
+# Menggunakan uv run:
+uv run python inference_nlp.py sample/nlp/anxious_journal.json
+```
+
+**3. Menggunakan Sampel Emosi Sedih (Sad):**
+```bash
+# Menggunakan uv run:
+uv run python inference_nlp.py sample/nlp/sad_journal.json
+```
+
+**4. Menggunakan Sampel Emosi Marah (Angry):**
+```bash
+# Menggunakan uv run:
+uv run python inference_nlp.py sample/nlp/angry_journal.json
+```
+
+**5. Menggunakan Sampel Emosi Netral (Neutral):**
+```bash
+# Menggunakan uv run:
+uv run python inference_nlp.py sample/nlp/neutral_journal.json
+```
+
+**6. Menggunakan Input Kustom Manual (Inline Teks):**
+
+Jika Anda ingin melakukan pengujian langsung dengan mengetikkan kalimat kustom di terminal tanpa membuat file baru:
 
 ```bash
+# Menggunakan python standar (venv aktif):
 python inference_nlp.py 'Hari ini saya merasa sangat cemas karena tugas menumpuk.'
+
+# Menggunakan uv run:
+uv run python inference_nlp.py 'Hari ini saya merasa sangat cemas karena tugas menumpuk.'
 ```
 
 **Output (Stdout JSON):**

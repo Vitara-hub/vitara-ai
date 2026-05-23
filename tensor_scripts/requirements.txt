@@ -1,0 +1,8 @@
+# Requirements for running the Keras to ONNX conversion script
+tensorflow>=2.15.0; sys_platform != "darwin" or platform_machine != "arm64"
+tensorflow-macos>=2.15.0; sys_platform == "darwin" and platform_machine == "arm64"
+tf2onnx>=1.16.0
+onnxruntime>=1.16.0
+numpy>=1.23.5
+transformers
+tf-keras

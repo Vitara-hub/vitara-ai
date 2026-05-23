@@ -191,7 +191,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"wpm\": 58.3,\n    \"backspace_rate\": 0.12,\n    \"inter_key_timings\": [120, 98, 145, 87, 203, 110],\n    \"user_id\": \"usr_abc123\"\n}",
+					"raw": "{\n    \"wpm\": 38.2,\n    \"backspace_rate\": 0.28,\n    \"inter_key_timings\": [280, 140, 310, 95, 410, 85, 290, 115, 330, 125, 390, 90, 270, 150, 320, 100, 380, 80, 300, 110],\n    \"user_id\": \"usr_abc123\"\n}",
 					"options": {
 						"raw": {
 							"language": "json"

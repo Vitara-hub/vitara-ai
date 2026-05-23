@@ -107,12 +107,11 @@ class MemoryStore:
         mem_types: List[str] = None
     ) -> List[Dict[str, Any]]:
         """
-        Retrieves memories per memory type to ensure diverse context representation.
-        For each type (e.g. nlp_prediction, user_chat, companion_response, health_score),
-        it fetches the top `per_type_limit` most semantically similar results.
-        This prevents high-frequency types (like user_chat) from monopolizing the context.
-        
-        Falls back to standard retrieve_memories if per-type queries fail.
+        Retrieves memories per memory type using a Hybrid Retrieval strategy:
+        1. Gets the top 1 most semantically similar memory via collection.query.
+        2. Gets the 1 absolute newest memory chronologically via collection.get and sorting.
+        3. Unions both results (eliminating duplicate IDs) to ensure the LLM receives
+           both the latest health state and relevant historic context.
         """
         if not query_text or not query_text.strip():
             return []
@@ -133,23 +132,22 @@ class MemoryStore:
 
         for mem_type in mem_types:
             try:
-                results = self.collection.query(
+                # Path A: Semantic Query (Top 1)
+                semantic_limit = max(1, per_type_limit - 1)
+                semantic_results = self.collection.query(
                     query_texts=[query_text],
-                    n_results=per_type_limit,
+                    n_results=semantic_limit,
                     where={"$and": [{"user_id": user_id}, {"type": mem_type}]}
                 )
 
-                if not results or "documents" not in results or not results["documents"]:
-                    continue
+                if semantic_results and "documents" in semantic_results and semantic_results["documents"]:
+                    documents = semantic_results["documents"][0]
+                    metadatas = semantic_results.get("metadatas", [[]])[0]
+                    ids = semantic_results.get("ids", [[]])[0]
+                    distances = semantic_results.get("distances", [[]])[0] if "distances" in semantic_results else None
 
-                documents = results["documents"][0]
-                metadatas = results.get("metadatas", [[]])[0]
-                ids = results.get("ids", [[]])[0]
-                distances = results.get("distances", [[]])[0] if "distances" in results else None
-
-                for idx in range(len(documents)):
-                    mem_id = ids[idx]
-                    if mem_id not in all_memories:
+                    for idx in range(len(documents)):
+                        mem_id = ids[idx]
                         memory_item = {
                             "id": mem_id,
                             "document": documents[idx],
@@ -159,12 +157,37 @@ class MemoryStore:
                             memory_item["distance"] = distances[idx]
                         all_memories[mem_id] = memory_item
 
+                # Path B: Absolute Newest Query (Top 1 chronologically)
+                type_results = self.collection.get(
+                    where={"$and": [{"user_id": user_id}, {"type": mem_type}]}
+                )
+
+                if type_results and "documents" in type_results and type_results["documents"]:
+                    get_docs = type_results["documents"]
+                    get_metas = type_results.get("metadatas", [])
+                    get_ids = type_results.get("ids", [])
+
+                    # Convert to list of dicts for sorting
+                    items_to_sort = []
+                    for idx in range(len(get_docs)):
+                        items_to_sort.append({
+                            "id": get_ids[idx],
+                            "document": get_docs[idx],
+                            "metadata": get_metas[idx] if idx < len(get_metas) else {},
+                        })
+
+                    if items_to_sort:
+                        # Sort by timestamp descending to find newest
+                        items_to_sort.sort(key=lambda x: x.get("metadata", {}).get("timestamp", ""), reverse=True)
+                        newest_item = items_to_sort[0]
+                        newest_id = newest_item["id"]
+                        all_memories[newest_id] = newest_item
+
             except Exception as e:
-                # If a type has no entries yet, ChromaDB may throw — silently skip
-                print(f"⚠️ [MemoryStore] Skipping type '{mem_type}' in diverse retrieval: {e}")
+                print(f"⚠️ [MemoryStore] Skipping type '{mem_type}' in hybrid retrieval: {e}")
                 continue
 
-        # Sort final list chronologically by timestamp
+        # Sort final list chronologically by timestamp ascending for standard RAG context stitching
         unique_memories = list(all_memories.values())
         try:
             unique_memories.sort(key=lambda x: x.get("metadata", {}).get("timestamp", ""))

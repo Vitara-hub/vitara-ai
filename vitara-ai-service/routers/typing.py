@@ -7,7 +7,7 @@ import os
 
 router = APIRouter(prefix="/predict", tags=["Typing"])
 
-MODEL_PATH = "models/typing_model/typing_stress_lstm.tflite"
+MODEL_PATH = "models/typing_model/typing_stress_lstm.onnx"
 predictor = None
 
 def load_typing_model():

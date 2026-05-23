@@ -65,9 +65,9 @@ uv run python inference_food.py sample/food_vision/ayam_geprek.jpg ./models/visi
 
 ---
 
-## 2. Model Typing Stress LSTM (H5)
+## 2. Model Typing Stress LSTM (ONNX)
 
-Model pendeteksi tingkat stres pengguna berdasarkan pola pengetikan tombol keyboard (*keystroke dynamics*) menggunakan Keras H5 format (`.h5`).
+Model pendeteksi tingkat stres pengguna berdasarkan pola pengetikan tombol keyboard (*keystroke dynamics*) menggunakan format ONNX (`.onnx`).
 
 ### Skrip
 `inference_typing.py`
@@ -76,10 +76,10 @@ Model pendeteksi tingkat stres pengguna berdasarkan pola pengetikan tombol keybo
 
 ```bash
 # Jika virtual environment sudah aktif:
-python inference_typing.py '<json_payload>' [path_ke_model_h5]
+python inference_typing.py '<json_payload>' [path_ke_model_onnx]
 
 # Atau menggunakan uv run (otomatis mengaktifkan venv):
-uv run python inference_typing.py '<json_payload>' [path_ke_model_h5]
+uv run python inference_typing.py '<json_payload>' [path_ke_model_onnx]
 ```
 
 ### Keterangan Parameter
@@ -88,7 +88,7 @@ uv run python inference_typing.py '<json_payload>' [path_ke_model_h5]
   - `wpm` (float): Kecepatan mengetik dalam kata per menit (*Words Per Minute*).
   - `backspace_rate` (float): Rasio penekanan tombol backspace (0.0 – 1.0).
   - `inter_key_timings` (integer[]): List interval waktu antar ketukan tombol (milidetik).
-- `[path_ke_model_h5]`: _(Opsional)_ Lokasi file model `.h5`. Secara default mencari ke `models/typing_model/typing_stress_lstm.h5`.
+- `[path_ke_model_onnx]`: _(Opsional)_ Lokasi file model `.onnx`. Secara default mencari ke `models/typing_model/typing_stress_lstm.onnx`.
 
 ### Pengujian Menggunakan Data Sampel
 
@@ -142,6 +142,128 @@ uv run python inference_typing.py '{"wpm": 58.3, "backspace_rate": 0.12, "inter_
 
 ---
 
-## 3. Model NLP Stress/Emotion & Sleep (Dalam Pengembangan)
+## 3. Model NLP Stress/Emotion (ONNX)
 
-Skrip inferensi mandiri untuk model NLP (`inference_nlp.py`) dan kualitas tidur (`inference_sleep.py`) saat ini sedang dalam proses penyelarasan dengan arsitektur backend terbaru. Detil penggunaan akan ditambahkan setelah model selesai divalidasi.
+Model pendeteksi emosi dan tingkat stres pengguna berdasarkan teks jurnal menggunakan format ONNX (`.onnx`) dan tokenizer lokal Hugging Face.
+
+### Skrip
+`inference_nlp.py`
+
+### Format Perintah
+
+```bash
+# Jika virtual environment sudah aktif:
+python inference_nlp.py '<teks_jurnal_atau_path_json>' [path_ke_model_onnx] [path_ke_folder_tokenizer]
+
+# Atau menggunakan uv run (otomatis mengaktifkan venv):
+uv run python inference_nlp.py '<teks_jurnal_atau_path_json>' [path_ke_model_onnx] [path_ke_folder_tokenizer]
+```
+
+### Keterangan Parameter
+
+- `<teks_jurnal_atau_path_json>`: Teks jurnal dalam Bahasa Indonesia yang ingin dianalisis, ATAU lokasi/path file JSON yang berisi teks jurnal (contoh: `sample/nlp/happy_journal.json`).
+- `[path_ke_model_onnx]`: _(Opsional)_ Lokasi file model `.onnx`. Secara default mencari ke `models/nlp_model/vitara_nlp_indobert.onnx`.
+- `[path_ke_folder_tokenizer]`: _(Opsional)_ Lokasi folder tokenizer. Secara default mencari ke `models/nlp_model/tokenizer/`.
+
+### Pengujian Menggunakan Data Sampel
+
+Telah disediakan beberapa data sampel di folder `sample/nlp/` untuk memudahkan verifikasi emosi dan tingkat stres.
+
+**1. Menggunakan Sampel Emosi Senang (Happy - Low Stress):**
+```bash
+# Menggunakan python standar (venv aktif):
+python inference_nlp.py sample/nlp/happy_journal.json
+
+# Menggunakan uv run:
+uv run python inference_nlp.py sample/nlp/happy_journal.json
+```
+
+**2. Menggunakan Sampel Emosi Cemas (Anxious - High Stress):**
+```bash
+# Menggunakan uv run:
+uv run python inference_nlp.py sample/nlp/anxious_journal.json
+```
+
+**3. Menggunakan Sampel Emosi Sedih (Sad):**
+```bash
+# Menggunakan uv run:
+uv run python inference_nlp.py sample/nlp/sad_journal.json
+```
+
+**4. Menggunakan Sampel Emosi Marah (Angry):**
+```bash
+# Menggunakan uv run:
+uv run python inference_nlp.py sample/nlp/angry_journal.json
+```
+
+**5. Menggunakan Sampel Emosi Netral (Neutral):**
+```bash
+# Menggunakan uv run:
+uv run python inference_nlp.py sample/nlp/neutral_journal.json
+```
+
+**6. Menggunakan Input Kustom Manual (Inline Teks):**
+
+Jika Anda ingin melakukan pengujian langsung dengan mengetikkan kalimat kustom di terminal tanpa membuat file baru:
+
+```bash
+# Menggunakan python standar (venv aktif):
+python inference_nlp.py 'Hari ini saya merasa sangat cemas karena tugas menumpuk.'
+
+# Menggunakan uv run:
+uv run python inference_nlp.py 'Hari ini saya merasa sangat cemas karena tugas menumpuk.'
+```
+
+**Output (Stdout JSON):**
+```json
+{
+  "emotion": "anxious",
+  "stress_level": 0.82,
+  "emotion_probabilities": {
+    "angry": 0.05,
+    "anxious": 0.82,
+    "happy": 0.01,
+    "neutral": 0.10,
+    "sad": 0.02
+  }
+}
+```
+
+---
+
+## 4. Model Sleep Quality (Rule-Based CLI)
+
+Skrip inferensi mandiri untuk menguji formula skor kualitas tidur.
+
+### Skrip
+`inference_sleep.py`
+
+### Format Perintah
+
+```bash
+# Jika virtual environment sudah aktif:
+python inference_sleep.py '<json_payload>'
+
+# Atau menggunakan uv run:
+uv run python inference_sleep.py '<json_payload>'
+```
+
+### Keterangan Parameter
+
+- `<json_payload>`: String berformat JSON yang berisi data log tidur pengguna:
+  - `duration_hours` (float): Durasi tidur dalam jam.
+  - `interruptions` (integer): Frekuensi terbangun di malam hari.
+  - `sleep_debt_hours` (float, opsional): Jam utang tidur yang diakumulasi.
+
+### Contoh Penggunaan
+
+```bash
+python inference_sleep.py '{"duration_hours": 6.5, "interruptions": 2, "sleep_debt_hours": 1.0}'
+```
+
+**Output (Stdout JSON):**
+```json
+{
+  "quality_score": 75
+}
+```

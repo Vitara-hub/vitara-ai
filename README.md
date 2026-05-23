@@ -10,6 +10,7 @@ Repositori ini menggunakan struktur modular untuk memisahkan antara riset (noteb
 .
 ├── vitara-ai-service/      # Aplikasi utama (FastAPI) untuk melayani inferensi model AI
 ├── notebooks/              # Jupyter Notebook untuk eksperimen, preprocessing, dan training model
+├── tensor_scripts/         # Skrip utilitas untuk konversi model TensorFlow/Keras ke ONNX
 ├── data/                   # (Ignored) Folder lokal untuk raw data, dataset, atau model checkpoint
 └── docs/                   # Dokumentasi arsitektur, API contract, dan postman collection
 ```
@@ -22,12 +23,12 @@ Berikut modul AI yang telah dikembangkan dan di-serve pada layanan API:
 
 | Modul | Endpoint | Status | Keterangan |
 |---|---|---|---|
-| **NLP (Journal Analysis)** | `POST /predict/journal` | ✅ Aktif | Analisis emosi & tingkat stres dari teks jurnal. |
-| **Vision (Food Detection)** | `POST /predict/food` | ✅ Aktif | Klasifikasi makanan & estimasi kalori dari gambar (MobileNetV2 TFLite). |
+| **NLP (Journal Analysis)** | `POST /predict/journal` | ✅ Aktif | Analisis emosi & tingkat stres dari teks jurnal menggunakan model IndoBERT (ONNX). |
+| **Vision (Food Detection)** | `POST /predict/food` | ✅ Aktif | Klasifikasi makanan & -estimasi kalori dari gambar (MobileNetV2 TFLite). |
 | **Health Score** | `POST /health/score` | ✅ Aktif | Kalkulasi skor kesehatan holistik berbasis **rule-based engine** (deterministic). |
-| **LLM Companion** | `POST /companion/chat` | ✅ Aktif | Asisten kesehatan AI berbasis **Gemini 2.5 Flash + RAG (ChromaDB)** dengan SSE streaming. |
+| **LLM Companion** | `POST /companion/chat` | ✅ Aktif | Asisten kesehatan AI berbasis **Gemini 3.1 Flash (Lite) + RAG (ChromaDB)** dengan SSE streaming. |
 | **Sleep Pattern** | `POST /predict/sleep` | ✅ Aktif (mock mode) | Analisis kualitas dan pola tidur pengguna (formula mock dinamis). |
-| **Typing Pattern** | `POST /predict/typing` | ✅ Aktif | Deteksi tingkat stres melalui dinamika pola pengetikan (model LSTM). |
+| **Typing Pattern** | `POST /predict/typing` | ✅ Aktif | Deteksi tingkat stres melalui dinamika pola pengetikan menggunakan model LSTM (ONNX). |
 
 ---
 
@@ -74,8 +75,8 @@ Setelah server berjalan, dokumentasi interaktif tersedia di:
 Kami menyediakan beberapa metode pengujian:
 
 - **Postman Collection**: Tersedia di `vitara-ai-service/docs/postman_collection.json` untuk pengujian integrasi otomatis. Koleksi ini mencakup validasi fungsionalitas dengan ambang batas **latency ≤ 2 detik** per endpoint.
-- **Skrip LLM Companion**: `scripts/test_companion.py` untuk menguji pipeline RAG (ChromaDB) dan streaming Gemini secara langsung dari terminal.
-- **Validasi Model**: `scripts/validate_models.py` untuk memvalidasi performa model AI terhadap ambang batas metrik yang telah ditentukan.
+- **Skrip LLM Companion**: `vitara-ai-service/scripts/test_companion.py` untuk menguji pipeline RAG (ChromaDB) dan streaming Gemini secara langsung dari terminal.
+- **Validasi Model**: `vitara-ai-service/scripts/validate_models.py` untuk memvalidasi performa model AI terhadap ambang batas metrik yang telah ditentukan.
 
 ---
 

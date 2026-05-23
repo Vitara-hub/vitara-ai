@@ -26,6 +26,7 @@ class LLMCompanionService:
     def __init__(self):
         self.api_key = os.getenv("GEMINI_API_KEY")
         self.is_configured = self.api_key is not None and self.api_key != "your_gemini_api_key_here"
+        self.model_name = os.getenv("COMPANION_MODEL_NAME", "gemini-3.1-flash-lite")
         
         if self.is_configured:
             self.client = genai.Client(api_key=self.api_key)
@@ -95,7 +96,7 @@ class LLMCompanionService:
         try:
             # Step 4.1: Stream response from Gemini using Client.aio
             response = await self.client.aio.models.generate_content_stream(
-                model="gemini-3.1-flash-lite",
+                model=self.model_name,
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     system_instruction=SYSTEM_INSTRUCTION,
@@ -135,7 +136,7 @@ class LLMCompanionService:
                 recommendations: List[str] = Field(description="2 to 4 concrete, actionable health recommendations in Indonesian.")
                 
             rec_response = await self.client.aio.models.generate_content(
-                model="gemini-3.1-flash-lite",
+                model=self.model_name,
                 contents=rec_prompt,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",

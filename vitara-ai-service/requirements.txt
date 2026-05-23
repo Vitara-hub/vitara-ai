@@ -1,12 +1,11 @@
 numpy==1.26.4
 Pillow==11.3.0
 pandas==2.2.2
-# TensorFlow untuk macOS (Apple Silicon)
-tensorflow-macos==2.16.2; sys_platform == 'darwin' and platform_machine == 'arm64'
-tensorflow-metal; sys_platform == 'darwin' and platform_machine == 'arm64'
-# TensorFlow untuk Windows/Linux/Intel Mac
-tensorflow>=2.16.1; sys_platform != 'darwin' or platform_machine != 'arm64'
-ai-edge-litert
+# ONNX Runtime & HuggingFace tokenizers (Pengganti TensorFlow)
+onnxruntime
+transformers
+tokenizers
+ai-edge-litert==1.0.1
 setuptools<70.0.0
 fastapi
 uvicorn

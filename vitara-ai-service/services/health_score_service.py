@@ -1,4 +1,12 @@
+import math
 from schemas.health_score import HealthScoreRequest, HealthScoreResponse, HealthScoreBreakdown
+
+def round_half_up(n: float) -> int:
+    """
+    Rounds a float to the nearest integer, with ties (.5) rounding up.
+    Includes a small epsilon to handle float precision issues.
+    """
+    return math.floor(n + 0.5 + 1e-9)
 
 class HealthScoreService:
     @staticmethod
@@ -59,7 +67,7 @@ class HealthScoreService:
 
         if stress_elements:
             avg_stress_level = sum(stress_elements) / len(stress_elements)
-            stress_score = max(0, min(100, int(round((1.0 - avg_stress_level) * 100))))
+            stress_score = max(0, min(100, round_half_up((1.0 - avg_stress_level) * 100)))
             scores['stress'] = stress_score
             weights['stress'] = 0.30
         else:
@@ -93,7 +101,7 @@ class HealthScoreService:
         if scores:
             total_weight = sum(weights.values())
             raw_overall = sum(scores[key] * (weights[key] / total_weight) for key in scores)
-            overall_score = max(0, min(100, int(round(raw_overall))))
+            overall_score = max(0, min(100, round_half_up(raw_overall)))
         else:
             # Fallback jika tidak ada data sama sekali (Default Netral/60)
             overall_score = 60

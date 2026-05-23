@@ -7,16 +7,9 @@ import io
 import os
 from services.llm_companion import memory_store
 
-# Gunakan ai_edge_litert jika tersedia (lebih ringan untuk Mac/ARM), fallback ke tf.lite
-try:
-    # pyrefly: ignore [missing-import]
-    from ai_edge_litert.interpreter import Interpreter
-except ImportError:
-    try:
-        import tensorflow as tf
-        Interpreter = tf.lite.Interpreter
-    except ImportError:
-        Interpreter = None
+# Gunakan ai_edge_litert (lebih ringan untuk Mac/ARM)
+# pyrefly: ignore [missing-import]
+from ai_edge_litert.interpreter import Interpreter
 
 router = APIRouter(prefix="/predict", tags=["Food"])
 
@@ -28,7 +21,7 @@ classes = []
 
 def load_food_model():
     global interpreter, classes
-    if os.path.exists(MODEL_PATH) and Interpreter:
+    if os.path.exists(MODEL_PATH):
         try:
             interpreter = Interpreter(model_path=MODEL_PATH)
             interpreter.allocate_tensors()

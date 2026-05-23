@@ -1,9 +1,11 @@
 # pyrefly: ignore [missing-import]
 from fastapi import APIRouter, HTTPException
 from schemas.journal import JournalRequest, JournalResponse
-import tensorflow as tf
-from models.custom_layers import AttentionLayer
-from models.custom_losses import WeightedFocalLoss
+# pyrefly: ignore [missing-import]
+import onnxruntime as ort
+# pyrefly: ignore [missing-import]
+from transformers import AutoTokenizer
+import numpy as np
 import os
 from services.llm_companion import memory_store
 # pyrefly: ignore [missing-import]
@@ -17,26 +19,23 @@ import json
 
 router = APIRouter(prefix="/predict", tags=["Journal"])
 
-# Path ke model (sesuaikan jika nama file berbeda)
-MODEL_PATH = "models/nlp_model/nlp_model.keras"
+# Path ke model ONNX dan tokenizer
+MODEL_PATH = "models/nlp_model/vitara_nlp_indobert.onnx"
+TOKENIZER_PATH = "models/nlp_model/tokenizer"
 model = None
+tokenizer = None
 
 def load_nlp_model():
-    global model
-    if os.path.exists(MODEL_PATH):
+    global model, tokenizer
+    if os.path.exists(MODEL_PATH) and os.path.exists(TOKENIZER_PATH):
         try:
-            model = tf.keras.models.load_model(
-                MODEL_PATH,
-                custom_objects={
-                    "AttentionLayer": AttentionLayer,
-                    "WeightedFocalLoss": WeightedFocalLoss
-                }
-            )
-            print("✅ NLP Model loaded successfully.")
+            model = ort.InferenceSession(MODEL_PATH)
+            tokenizer = AutoTokenizer.from_pretrained(TOKENIZER_PATH)
+            print("✅ NLP ONNX Model and Tokenizer loaded successfully.")
         except Exception as e:
-            print(f"❌ Error loading NLP Model: {e}")
+            print(f"❌ Error loading NLP Model or Tokenizer: {e}")
     else:
-        print(f"⚠️ Warning: NLP Model not found at {MODEL_PATH}. Using mock predictions for now.")
+        print(f"⚠️ Warning: NLP Model/Tokenizer not found. Expected model at {MODEL_PATH} and tokenizer at {TOKENIZER_PATH}. Using mock predictions for now.")
 
 # Inisialisasi model saat module di-import
 load_nlp_model()
@@ -108,7 +107,7 @@ async def predict_journal(request: JournalRequest):
     # Ekstrak topik menggunakan Gemma/Fallback secara dinamis
     extracted_topics = await extract_topics_via_gemma(request.text)
     
-    if model is None:
+    if model is None or tokenizer is None:
         # Fallback ke mock data jika model belum tersedia di local
         response_data = JournalResponse(
             emotion="neutral",
@@ -131,15 +130,42 @@ async def predict_journal(request: JournalRequest):
         return response_data
     
     try:
-        # TODO: Implementasi preprocessing (Tokenization/Padding) jika tidak termasuk dalam model
-        # prediction = model.predict([request.text])
+        # Tokenisasi input teks
+        encoded = tokenizer(
+            request.text,
+            padding="max_length",
+            truncation=True,
+            max_length=128,
+            return_tensors="np"
+        )
         
-        # Placeholder sementara menunggu koordinasi format output model dari Putri
+        # Buat feed dict dengan tipe int32
+        feed_dict = {
+            "input_ids": encoded["input_ids"].astype(np.int32),
+            "attention_mask": encoded["attention_mask"].astype(np.int32),
+            "token_type_ids": encoded["token_type_ids"].astype(np.int32),
+        }
+        
+        # Jalankan model ONNX
+        outputs = model.run(["emotion_output", "stress_output"], feed_dict)
+        
+        emotion_probs = outputs[0][0]  # shape (5,)
+        stress_val = float(outputs[1][0][0])  # shape (1,) -> float
+        
+        # Pemetaan label emosi (urutan alfabetis)
+        EMOTION_LABELS = ["angry", "anxious", "happy", "neutral", "sad"]
+        predicted_emotion_idx = int(np.argmax(emotion_probs))
+        predicted_emotion = EMOTION_LABELS[predicted_emotion_idx]
+        
+        # Batasi nilai tingkat stres ke rentang 0.0 - 1.0
+        stress_val = max(0.0, min(1.0, stress_val))
+        
         response_data = JournalResponse(
-            emotion="anxious",
-            stress_level=0.82,
+            emotion=predicted_emotion,
+            stress_level=round(stress_val, 4),
             topics=extracted_topics
         )
+        
         if request.user_id:
             # Save raw journal text for semantic similarity matching
             memory_store.add_memory(

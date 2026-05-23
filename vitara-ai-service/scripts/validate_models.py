@@ -3,77 +3,23 @@ import sys
 import argparse
 import numpy as np
 import pandas as pd
-import tensorflow as tf
 from datetime import datetime
+# pyrefly: ignore [missing-import]
+import onnxruntime as ort
+# pyrefly: ignore [missing-import]
+from ai_edge_litert.interpreter import Interpreter
+from PIL import Image
+# pyrefly: ignore [missing-import]
+from transformers import AutoTokenizer
 
 # =================================================================
-# VITARA AI - MODEL VALIDATION SCRIPT
+# VITARA AI - MODEL VALIDATION SCRIPT (TENSORFLOW-FREE VERSION)
 # =================================================================
 
 # Add the parent directory to sys.path to allow imports from vitara-ai-service
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(os.path.dirname(BASE_DIR), "data")
 sys.path.append(BASE_DIR)
-
-# Import custom components if they exist
-CUSTOM_OBJECTS = {}
-
-# Custom compatibility layers for robust Keras 3 deserialization
-class NotEqual(tf.keras.layers.Layer):
-    def __init__(self, **kwargs):
-        super(NotEqual, self).__init__(**kwargs)
-    def __call__(self, *args, **kwargs):
-        tensor_input = args[0]
-        return super(NotEqual, self).__call__(tensor_input, **kwargs)
-    def call(self, x):
-        return tf.math.not_equal(x, 0.0)
-
-class Any(tf.keras.layers.Layer):
-    def __init__(self, axis=-1, keepdims=False, **kwargs):
-        super(Any, self).__init__(**kwargs)
-        self.axis = axis
-        self.keepdims = keepdims
-    def call(self, x):
-        return tf.reduce_any(x, axis=self.axis, keepdims=self.keepdims)
-    def get_config(self):
-        config = super(Any, self).get_config()
-        config.update({'axis': self.axis, 'keepdims': self.keepdims})
-        return config
-
-class PatchedDense(tf.keras.layers.Dense):
-    def __init__(self, *args, **kwargs):
-        kwargs.pop('quantization_config', None)
-        super(PatchedDense, self).__init__(*args, **kwargs)
-
-class PatchedLSTM(tf.keras.layers.LSTM):
-    def __init__(self, *args, **kwargs):
-        kwargs.pop('quantization_config', None)
-        super(PatchedLSTM, self).__init__(*args, **kwargs)
-
-class PatchedMasking(tf.keras.layers.Masking):
-    def __init__(self, *args, **kwargs):
-        kwargs.pop('quantization_config', None)
-        super(PatchedMasking, self).__init__(*args, **kwargs)
-
-CUSTOM_OBJECTS.update({
-    'NotEqual': NotEqual,
-    'Any': Any,
-    'Dense': PatchedDense,
-    'LSTM': PatchedLSTM,
-    'Masking': PatchedMasking
-})
-
-try:
-    from models.custom_layers import AttentionLayer
-    CUSTOM_OBJECTS['AttentionLayer'] = AttentionLayer
-except ImportError:
-    print("Warning: AttentionLayer not found.")
-
-try:
-    from models.custom_losses import WeightedFocalLoss
-    CUSTOM_OBJECTS['WeightedFocalLoss'] = WeightedFocalLoss
-except ImportError:
-    print("Warning: WeightedFocalLoss not found.")
 
 # ANSI Colors for terminal output
 class Colors:
@@ -110,6 +56,54 @@ def print_result(name, value, target, condition='ge'):
           f"{color}{value:.4f}{Colors.ENDC} (Target {op} {target:.4f}) -> {color}{status}{Colors.ENDC}")
     return passed
 
+def calculate_auc(y_true, y_pred):
+    """
+    Menghitung Area Under the Receiver Operating Characteristic Curve (ROC AUC)
+    secara murni menggunakan numpy.
+    """
+    y_true = np.array(y_true)
+    y_pred = np.array(y_pred)
+    
+    # Urutkan berdasarkan prediksi secara menurun
+    desc_score_indices = np.argsort(y_pred)[::-1]
+    y_true = y_true[desc_score_indices]
+    y_pred = y_pred[desc_score_indices]
+    
+    # Hitung jumlah sampel positif dan negatif
+    n_pos = np.sum(y_true == 1)
+    n_neg = np.sum(y_true == 0)
+    
+    if n_pos == 0 or n_neg == 0:
+        return 0.5
+        
+    # Hitung peringkat (ranks)
+    tp = 0
+    fp = 0
+    tps = []
+    fps = []
+    
+    for i in range(len(y_true)):
+        if y_true[i] == 1:
+            tp += 1
+        else:
+            fp += 1
+        # Menangani nilai prediksi yang sama (ties)
+        if i == len(y_true) - 1 or y_pred[i] != y_pred[i+1]:
+            tps.append(tp)
+            fps.append(fp)
+            
+    # Hitung area di bawah kurva trapezoidal
+    auc = 0.0
+    prev_fp = 0
+    prev_tp = 0
+    for tp_val, fp_val in zip(tps, fps):
+        # Tambahkan area trapesium
+        auc += (fp_val - prev_fp) * (tp_val + prev_tp) / 2.0
+        prev_fp = fp_val
+        prev_tp = tp_val
+        
+    return auc / (n_pos * n_neg)
+
 class ModelValidator:
     def __init__(self):
         self.results = {}
@@ -118,11 +112,16 @@ class ModelValidator:
 
     def validate_nlp(self):
         print_header("NLP Stress/Emotion Model Validation")
-        model_path = os.path.join(BASE_DIR, "models/nlp_model")
+        model_path = os.path.join(BASE_DIR, "models/nlp_model/vitara_nlp_indobert.onnx")
+        tokenizer_path = os.path.join(BASE_DIR, "models/nlp_model/tokenizer")
         test_data_path = os.path.join(DATA_DIR, "nlp/processed/test.csv")
         
         if not os.path.exists(model_path):
-            print(f"{Colors.WARNING}NLP Model not found at {model_path}{Colors.ENDC}")
+            print(f"{Colors.WARNING}NLP ONNX Model not found at {model_path}{Colors.ENDC}")
+            return
+        
+        if not os.path.exists(tokenizer_path):
+            print(f"{Colors.WARNING}NLP Tokenizer not found at {tokenizer_path}{Colors.ENDC}")
             return
         
         if not os.path.exists(test_data_path):
@@ -130,26 +129,44 @@ class ModelValidator:
             return
 
         try:
-            print(f"Loading model: {model_path}")
-            model = tf.keras.models.load_model(model_path, custom_objects=CUSTOM_OBJECTS)
+            print(f"Loading ONNX Model: {model_path}")
+            session = ort.InferenceSession(model_path)
+            
+            print(f"Loading Tokenizer: {tokenizer_path}")
+            tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
             
             print(f"Loading test data: {test_data_path}")
             test_df = pd.read_csv(test_data_path)
             
-            # Assuming 'text' is the input and ['emotion_label', 'stress_score'] are targets
-            # This depends on the specific training pipeline
-            x_test = test_df['text'].values
+            texts = test_df['text'].tolist()
             y_emotion = test_df['emotion_label'].values
-            y_stress = test_df['stress_score'].values
             
-            print("Running model.evaluate()...")
-            # The metrics depend on how the model was compiled
-            results = model.evaluate(x_test, [y_emotion, y_stress], verbose=0)
+            print("Tokenizing test texts...")
+            encoded = tokenizer(
+                texts,
+                padding="max_length",
+                truncation=True,
+                max_length=128,
+                return_tensors="np"
+            )
             
-            # Assuming metrics: [loss, emotion_acc, stress_acc]
-            # We use the emotion accuracy as the primary metric for the threshold
-            emotion_acc = results[1] if len(results) > 1 else results[0]
+            feed_dict = {
+                "input_ids": encoded["input_ids"].astype(np.int32),
+                "attention_mask": encoded["attention_mask"].astype(np.int32),
+                "token_type_ids": encoded["token_type_ids"].astype(np.int32),
+            }
             
+            print("Running ONNX inference...")
+            outputs = session.run(["emotion_output", "stress_output"], feed_dict)
+            emotion_probs = outputs[0]  # shape (N, 5)
+            
+            # Predict labels (argmax of probabilities)
+            pred_emotions = np.argmax(emotion_probs, axis=1)
+            
+            # Compute accuracy
+            emotion_acc = float(np.mean(pred_emotions == y_emotion))
+            
+            # Target threshold is 0.85
             p1 = print_result("Emotion/Stress Accuracy", emotion_acc, 0.85)
             self.results["NLP"] = p1
             
@@ -179,27 +196,25 @@ class ModelValidator:
             return
             
         try:
-            # pyrefly: ignore [missing-import]
-            from tensorflow.keras.preprocessing.image import ImageDataGenerator
-            # pyrefly: ignore [missing-import]
-            from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
-            from PIL import Image
-
             print(f"Loading TFLite model: {tflite_path}")
-            interpreter = tf.lite.Interpreter(model_path=tflite_path)
+            interpreter = Interpreter(model_path=tflite_path)
             interpreter.allocate_tensors()
             input_details = interpreter.get_input_details()
             output_details = interpreter.get_output_details()
             
-            print(f"Preparing test generator from: {test_dir}")
-            test_datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
-            test_generator = test_datagen.flow_from_directory(
-                test_dir,
-                target_size=(224, 224),
-                batch_size=1,   # TFLite interpreter runs one sample at a time
-                class_mode='sparse',
-                shuffle=False
-            )
+            # Identify subfolders as classes
+            class_names = sorted([d for d in os.listdir(test_dir) if os.path.isdir(os.path.join(test_dir, d))])
+            class_indices = {name: idx for idx, name in enumerate(class_names)}
+            
+            # Collect all image files and labels manually
+            image_paths = []
+            labels = []
+            for class_name in class_names:
+                class_path = os.path.join(test_dir, class_name)
+                for f in os.listdir(class_path):
+                    if f.lower().endswith(('.png', '.jpg', '.jpeg', '.webp')):
+                        image_paths.append(os.path.join(class_path, f))
+                        labels.append(class_indices[class_name])
             
             # Load calorie map if available
             idx_to_calorie = None
@@ -209,16 +224,21 @@ class ModelValidator:
                 class_to_calorie = dict(zip(calorie_df['class_name'], calorie_df['calories_per_100g']))
                 MAX_CALORIES = 1000.0
                 idx_to_calorie = {v: class_to_calorie.get(k, 0) / MAX_CALORIES
-                                  for k, v in test_generator.class_indices.items()}
+                                  for k, v in class_indices.items()}
 
-            print(f"Running TFLite inference on {test_generator.samples} test images...")
+            print(f"Running TFLite inference on {len(image_paths)} test images...")
             correct = 0
             calorie_abs_errors = []
             
-            for i in range(len(test_generator)):
-                x_batch, y_true_batch = test_generator[i]
+            for img_path, true_class in zip(image_paths, labels):
+                # Load and preprocess image using PIL & NumPy (equivalent to MobileNetV2 preprocessing)
+                img = Image.open(img_path).convert('RGB').resize((224, 224))
+                x = np.array(img, dtype=np.float32)
+                # Rescale to [-1, 1]
+                x = x / 127.5 - 1.0
+                x = np.expand_dims(x, axis=0) # add batch dimension
                 
-                interpreter.set_tensor(input_details[0]['index'], x_batch.astype(np.float32))
+                interpreter.set_tensor(input_details[0]['index'], x)
                 interpreter.invoke()
                 
                 # Determine class vs calorie output by shape
@@ -235,7 +255,6 @@ class ModelValidator:
                     calorie_pred = None
                 
                 predicted_class = int(np.argmax(class_pred, axis=-1)[0])
-                true_class = int(y_true_batch[0])
                 if predicted_class == true_class:
                     correct += 1
                 
@@ -244,7 +263,7 @@ class ModelValidator:
                     pred_cal = float(calorie_pred[0][0])
                     calorie_abs_errors.append(abs(pred_cal - true_cal))
             
-            acc = correct / test_generator.samples
+            acc = correct / len(image_paths) if image_paths else 0.0
             p1 = print_result("Classification Accuracy", acc, 0.85)
             
             if calorie_abs_errors:
@@ -261,30 +280,48 @@ class ModelValidator:
     def validate_typing(self):
         print_header("Typing Stress Model Validation")
         typing_path = os.path.join(BASE_DIR, "models/typing_model")
-        model_file = os.path.join(typing_path, "typing_stress_lstm.h5")
-        if not os.path.exists(model_file):
-            model_file = typing_path
-            
-        typing_test_path = os.path.join(DATA_DIR, "typing/processed/test.csv")
+        model_file = os.path.join(typing_path, "typing_stress_lstm.onnx")
         typing_test_dir = os.path.join(DATA_DIR, "typing/processed/test")
         
-        if os.path.exists(model_file) and (os.path.exists(typing_test_path) or os.path.exists(typing_test_dir)):
+        if os.path.exists(model_file) and os.path.exists(typing_test_dir):
             try:
-                print(f"Loading model: {model_file}")
-                model = tf.keras.models.load_model(model_file, custom_objects=CUSTOM_OBJECTS)
+                print(f"Loading ONNX Model: {model_file}")
+                session = ort.InferenceSession(model_file)
                 
-                if os.path.exists(typing_test_dir):
-                    print(f"Loading test numpy matrices from: {typing_test_dir}")
-                    X_seq = np.load(os.path.join(typing_test_dir, "X_seq.npy"))
-                    X_static = np.load(os.path.join(typing_test_dir, "X_static.npy"))
-                    y = np.load(os.path.join(typing_test_dir, "y.npy"))
-                    results = model.evaluate([X_seq, X_static], y, verbose=0)
-                else:
-                    print(f"Loading test data: {typing_test_path}")
-                    test_df = pd.read_csv(typing_test_path)
-                    results = model.evaluate(test_df.drop('target', axis=1), test_df['target'], verbose=0)
+                print(f"Loading test numpy matrices from: {typing_test_dir}")
+                X_seq = np.load(os.path.join(typing_test_dir, "X_seq.npy"))
+                X_static = np.load(os.path.join(typing_test_dir, "X_static.npy"))
+                y = np.load(os.path.join(typing_test_dir, "y.npy"))
+                
+                # Identify input names dynamically by shape
+                inputs = session.get_inputs()
+                seq_input_name = None
+                static_input_name = None
+                
+                for inp in inputs:
+                    shape = list(inp.shape)
+                    if len(shape) == 3 and shape[1] == 50:
+                        seq_input_name = inp.name
+                    elif len(shape) == 2 and shape[1] == 3:
+                        static_input_name = inp.name
+                        
+                if seq_input_name is None or static_input_name is None:
+                    # Fallback if dynamic resolution fails
+                    seq_input_name = inputs[0].name
+                    static_input_name = inputs[1].name
                     
-                auc = results[1] if len(results) > 1 else results[0]
+                output_name = session.get_outputs()[0].name
+                
+                print("Running inference...")
+                ort_inputs = {
+                    seq_input_name: X_seq.astype(np.float32),
+                    static_input_name: X_static.astype(np.float32)
+                }
+                predictions = session.run([output_name], ort_inputs)[0] # shape (N, 1)
+                predictions = predictions.flatten()
+                
+                # Calculate ROC AUC manually using NumPy function
+                auc = calculate_auc(y, predictions)
                 self.results["Typing"] = print_result("Typing Stress AUC-ROC", auc, 0.80)
             except Exception as e:
                 print(f"{Colors.FAIL}Error validating Typing: {e}{Colors.ENDC}")
@@ -297,14 +334,34 @@ class ModelValidator:
         sleep_path = os.path.join(BASE_DIR, "models/sleep_model")
         sleep_test_path = os.path.join(DATA_DIR, "sleep/processed/test.csv")
         
-        if os.path.exists(sleep_path) and os.path.exists(sleep_test_path):
+        # Check if sleep model (.tflite) exists
+        tflite_files = [f for f in os.listdir(sleep_path) if f.endswith('.tflite')] if os.path.exists(sleep_path) else []
+        
+        if tflite_files and os.path.exists(sleep_test_path):
             try:
-                print(f"Loading model: {sleep_path}")
-                model = tf.keras.models.load_model(sleep_path, custom_objects=CUSTOM_OBJECTS)
+                tflite_path = os.path.join(sleep_path, tflite_files[0])
+                print(f"Loading Sleep TFLite model: {tflite_path}")
+                interpreter = Interpreter(model_path=tflite_path)
+                interpreter.allocate_tensors()
+                input_details = interpreter.get_input_details()
+                output_details = interpreter.get_output_details()
+                
                 print(f"Loading test data: {sleep_test_path}")
                 test_df = pd.read_csv(sleep_test_path)
-                results = model.evaluate(test_df.drop('target', axis=1), test_df['target'], verbose=0)
-                mae = results[1] if len(results) > 1 else results[0]
+                
+                X_test = test_df.drop('target', axis=1).values.astype(np.float32)
+                y_true = test_df['target'].values
+                
+                print("Running inference...")
+                errors = []
+                for i in range(len(X_test)):
+                    x_sample = np.expand_dims(X_test[i], axis=0) # add batch dimension
+                    interpreter.set_tensor(input_details[0]['index'], x_sample)
+                    interpreter.invoke()
+                    pred = interpreter.get_tensor(output_details[0]['index'])[0][0]
+                    errors.append(abs(pred - y_true[i]))
+                    
+                mae = float(np.mean(errors))
                 self.results["Sleep"] = print_result("Sleep Scoring MAE", mae, 0.02, condition='le')
             except Exception as e:
                 print(f"{Colors.FAIL}Error validating Sleep: {e}{Colors.ENDC}")

@@ -8,12 +8,12 @@ Ini adalah aplikasi **FastAPI** yang menjadi inti dari layanan AI Vitara — men
 
 `vitara-ai-service` menyediakan empat endpoint utama yang aktif saat ini, dengan dua modul lainnya masih dalam pengembangan:
 
-| Journal Analysis | `POST /predict/journal` | NLP (TensorFlow `.keras`) | ✅ Aktif (mock mode jika model belum ada) |
+| Journal Analysis | `POST /predict/journal` | NLP (ONNX + Tokenizer Lokal) | ✅ Aktif |
 | Food Detection | `POST /predict/food` | MobileNetV2 TFLite | ✅ Aktif (model diperlukan) |
 | Health Score | `POST /health/score` | Rule-Based Engine | ✅ Aktif |
 | LLM Companion | `POST /companion/chat` | Gemini 2.5 Flash + ChromaDB | ✅ Aktif |
 | Sleep Analysis | `POST /predict/sleep` | Rule-Based / Mock | ✅ Aktif (mock mode) |
-| Typing Analysis | `POST /predict/typing` | LSTM (TensorFlow `.h5`) | ✅ Aktif |
+| Typing Analysis | `POST /predict/typing` | LSTM ONNX | ✅ Aktif |
 
 
 ---
@@ -50,8 +50,9 @@ vitara-ai-service/
 │   ├── sleep.py            # SleepPredictRequest, SleepPredictResponse
 │   └── typing.py           # TypingPredictRequest, TypingPredictResponse
 │
-├── models/                 # Model machine learning (file .keras/.tflite)
-│   ├── nlp_model/          # Model NLP (nlp_model.keras)
+├── models/                 # Model machine learning (file .onnx/.tflite)
+│   ├── nlp_model/          # Model NLP (vitara_nlp_indobert.onnx & folder tokenizer/)
+│   ├── typing_model/       # Model Typing (typing_stress_lstm.onnx)
 │   └── vision_model/       # Model Vision TFLite + classes.txt
 │
 ├── scripts/                # Skrip utilitas & pengujian
@@ -225,7 +226,7 @@ Setelah server berjalan, akses dokumentasi interaktif di:
   }
   ```
 - **Response**: `{ "stress_score": 0.74 }`
-- **Catatan**: Menggunakan model LSTM (`typing_stress_lstm.h5`). Otomatis menyimpan hasil analisis ke RAG jika `user_id` disertakan. Menggunakan **daily upsert** — jika dipanggil beberapa kali dalam sehari, hanya data sesi terbaru yang disimpan.
+- **Catatan**: Menggunakan model LSTM dalam format ONNX (`typing_stress_lstm.onnx`). Otomatis menyimpan hasil analisis ke RAG jika `user_id` disertakan. Menggunakan **daily upsert** — jika dipanggil beberapa kali dalam sehari, hanya data sesi terbaru yang disimpan.
 
 ---
 

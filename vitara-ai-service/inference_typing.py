@@ -81,9 +81,9 @@ class TypingStressPredictor:
         if not inter_key_timings:
             inter_key_timings = [0.0]
 
-        # 2. Calculate typing variance dynamically (variance of timing intervals in seconds squared)
+        # 2. Calculate typing variance dynamically (standard deviation of timing intervals in seconds)
         if len(inter_key_timings) > 1:
-            typing_variance = float(np.var(np.array(inter_key_timings) / 1000.0))
+            typing_variance = float(np.std(np.array(inter_key_timings) / 1000.0))
         else:
             typing_variance = 0.0
 

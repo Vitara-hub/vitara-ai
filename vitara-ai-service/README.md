@@ -353,11 +353,15 @@ Skrip akan mengeluarkan status `PASS` atau `FAIL` per metrik, dan mengembalikan 
 
 ## Monitoring dengan TensorBoard
 
-```bash
-# Menggunakan uv:
-uv run tensorboard --logdir logs/
+> [!IMPORTANT]
+> Perintah `uv run` untuk TensorBoard harus dijalankan dari folder `tensor_scripts/` karena dependensi TensorBoard terpasang di virtual environment folder tersebut.
 
-# Menggunakan python standar:
+```bash
+# Menggunakan uv (jalankan dari folder tensor_scripts/):
+cd ../tensor_scripts
+uv run tensorboard --logdir ../vitara-ai-service/logs/
+
+# Menggunakan python standar (dari folder vitara-ai-service/):
 tensorboard --logdir logs/
 ```
 

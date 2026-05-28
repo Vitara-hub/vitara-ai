@@ -1,12 +1,15 @@
 import os
 import sys
 import json
+# pyrefly: ignore [missing-import]
 import numpy as np
 
 try:
+    # pyrefly: ignore [missing-import]
     from ai_edge_litert.interpreter import Interpreter
 except ImportError:
     try:
+        # pyrefly: ignore [missing-import]
         from tflite_runtime.interpreter import Interpreter
     except ImportError:
         # Fallback for systems without ai_edge_litert or tflite_runtime installed

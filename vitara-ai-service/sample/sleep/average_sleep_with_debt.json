@@ -1,0 +1,8 @@
+{
+  "duration_hours": 7.0,
+  "bedtime": "23:00",
+  "wake_time": "06:00",
+  "interruptions": 1,
+  "sleep_debt_hours": 1.5,
+  "user_id": "user_average_sleep_01"
+}

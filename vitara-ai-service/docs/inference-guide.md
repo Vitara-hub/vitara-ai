@@ -231,9 +231,9 @@ uv run python inference_nlp.py 'Hari ini saya merasa sangat cemas karena tugas m
 
 ---
 
-## 4. Model Sleep Quality (Rule-Based CLI)
+## 4. Model Sleep Quality (TFLite)
 
-Skrip inferensi mandiri untuk menguji formula skor kualitas tidur.
+Model pendeteksi skor kualitas tidur pengguna (skala 0 - 100) menggunakan format TensorFlow Lite (`.tflite`).
 
 ### Skrip
 `inference_sleep.py`
@@ -242,23 +242,55 @@ Skrip inferensi mandiri untuk menguji formula skor kualitas tidur.
 
 ```bash
 # Jika virtual environment sudah aktif:
-python inference_sleep.py '<json_payload>'
+python inference_sleep.py '<json_payload_atau_path_json>' [path_ke_model_tflite]
 
 # Atau menggunakan uv run:
-uv run python inference_sleep.py '<json_payload>'
+uv run python inference_sleep.py '<json_payload_atau_path_json>' [path_ke_model_tflite]
 ```
 
 ### Keterangan Parameter
 
-- `<json_payload>`: String berformat JSON yang berisi data log tidur pengguna:
+- `<json_payload_atau_path_json>`: String berformat JSON yang berisi data log tidur pengguna, ATAU lokasi/path file JSON yang berisi data tidur (contoh: `sample/sleep/good_sleep.json`):
   - `duration_hours` (float): Durasi tidur dalam jam.
   - `interruptions` (integer): Frekuensi terbangun di malam hari.
-  - `sleep_debt_hours` (float, opsional): Jam utang tidur yang diakumulasi.
+  - `sleep_debt_hours` (float, opsional): Jam utang tidur yang diakumulasi (jika kosong, otomatis dianggap `0.0` oleh model).
+- `[path_ke_model_tflite]`: _(Opsional)_ Lokasi file model `.tflite`. Secara default mencari ke `models/sleep_model/sleep_scoring_model.tflite`.
 
-### Contoh Penggunaan
+### Pengujian Menggunakan Data Sampel
+
+Telah disediakan beberapa data sampel di folder `sample/sleep/` untuk memudahkan verifikasi.
+
+**1. Menggunakan Sampel Tidur Nyenyak (Good Sleep):**
+```bash
+# Menggunakan python standar (venv aktif):
+python inference_sleep.py "$(cat sample/sleep/good_sleep.json)"
+
+# Menggunakan uv run:
+uv run python inference_sleep.py "$(cat sample/sleep/good_sleep.json)"
+```
+
+**2. Menggunakan Sampel Tidur Buruk (Poor Sleep):**
+```bash
+# Menggunakan uv run:
+uv run python inference_sleep.py "$(cat sample/sleep/poor_sleep.json)"
+```
+
+**3. Menggunakan Sampel Tidur Sedang dengan Utang Tidur (Average Sleep):**
+```bash
+# Menggunakan uv run:
+uv run python inference_sleep.py "$(cat sample/sleep/average_sleep_with_debt.json)"
+```
+
+**4. Menggunakan Input Kustom Manual (Inline Teks):**
+
+Jika Anda ingin melakukan pengujian langsung dengan mengetikkan JSON kustom di terminal tanpa membuat file baru:
 
 ```bash
+# Menggunakan python standar (venv aktif):
 python inference_sleep.py '{"duration_hours": 6.5, "interruptions": 2, "sleep_debt_hours": 1.0}'
+
+# Menggunakan uv run:
+uv run python inference_sleep.py '{"duration_hours": 6.5, "interruptions": 2, "sleep_debt_hours": 1.0}'
 ```
 
 **Output (Stdout JSON):**
@@ -267,3 +299,4 @@ python inference_sleep.py '{"duration_hours": 6.5, "interruptions": 2, "sleep_de
   "quality_score": 75
 }
 ```
+

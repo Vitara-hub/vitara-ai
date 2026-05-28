@@ -3,6 +3,9 @@ from fastapi import APIRouter, HTTPException
 from schemas.journal import JournalRequest, JournalResponse
 # pyrefly: ignore [missing-import]
 import onnxruntime as ort
+import os
+# Supress PyTorch warning from transformers
+os.environ["TRANSFORMERS_NO_ADVISORY_WARNINGS"] = "true"
 # pyrefly: ignore [missing-import]
 from transformers import AutoTokenizer
 import numpy as np

@@ -9,6 +9,9 @@ import onnxruntime as ort
 # pyrefly: ignore [missing-import]
 from ai_edge_litert.interpreter import Interpreter
 from PIL import Image
+import os
+# Supress PyTorch warning from transformers
+os.environ["TRANSFORMERS_NO_ADVISORY_WARNINGS"] = "true"
 # pyrefly: ignore [missing-import]
 from transformers import AutoTokenizer
 

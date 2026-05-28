@@ -2,36 +2,31 @@
 from fastapi import APIRouter, HTTPException
 from schemas.sleep import SleepPredictRequest, SleepPredictResponse
 from services.llm_companion import memory_store
+from inference_sleep import SleepPredictor
 
 router = APIRouter(prefix="/predict", tags=["Sleep"])
+
+# Instantiate the predictor once
+predictor = SleepPredictor()
 
 @router.post("/sleep", response_model=SleepPredictResponse)
 async def predict_sleep(request: SleepPredictRequest):
     """
-    Menghitung skor kualitas tidur pengguna berdasarkan data tidur (menggunakan mock logic).
+    Menghitung skor kualitas tidur pengguna berdasarkan data tidur menggunakan model ML TFLite.
     """
     try:
-        # Mock formula:
-        # Base score 100
-        # Deduct 10 points for each interruption
-        # Deduct 10 points for each hour of sleep below 7 hours
-        # Deduct 5 points for sleep debt (if provided)
-        score = 100.0 - (request.interruptions * 10)
-        
-        if request.duration_hours < 7.0:
-            score -= (7.0 - request.duration_hours) * 10.0
-            
-        if request.sleep_debt_hours is not None:
-            score -= request.sleep_debt_hours * 5.0
-            
-        # Bound score to range 0 - 100
-        quality_score = max(0, min(100, int(round(score))))
+        # Predict using TFLite ML model
+        quality_score = predictor.predict(
+            duration_hours=request.duration_hours,
+            interruptions=request.interruptions,
+            sleep_debt_hours=request.sleep_debt_hours
+        )
         
         response_data = SleepPredictResponse(quality_score=quality_score)
         
         if request.user_id:
             memory_text = (
-                f"Analisis tidur: Kualitas tidur dinilai {quality_score}/100. "
+                f"Analisis tidur: Kualitas tidur dinilai {quality_score:.2f}. "
                 f"Detail: Durasi {request.duration_hours} jam, waktu tidur {request.bedtime} - {request.wake_time}, "
                 f"dengan {request.interruptions} kali terbangun di malam hari."
             )
@@ -54,3 +49,4 @@ async def predict_sleep(request: SleepPredictRequest):
         return response_data
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error calculating sleep score: {str(e)}")
+

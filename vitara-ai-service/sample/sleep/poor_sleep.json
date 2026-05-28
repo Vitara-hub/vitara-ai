@@ -1,0 +1,8 @@
+{
+  "duration_hours": 5.0,
+  "bedtime": "01:00",
+  "wake_time": "06:00",
+  "interruptions": 3,
+  "sleep_debt_hours": 2.5,
+  "user_id": "user_poor_sleep_01"
+}

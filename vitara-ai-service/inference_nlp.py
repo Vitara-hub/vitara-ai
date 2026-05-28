@@ -4,6 +4,9 @@ import json
 import numpy as np
 # pyrefly: ignore [missing-import]
 import onnxruntime as ort
+
+# Supress PyTorch warning from transformers
+os.environ["TRANSFORMERS_NO_ADVISORY_WARNINGS"] = "true"
 # pyrefly: ignore [missing-import]
 from transformers import AutoTokenizer
 

@@ -37,9 +37,9 @@ class SleepPredictRequest(BaseModel):
 
 
 class SleepPredictResponse(BaseModel):
-    quality_score: int = Field(
+    quality_score: float = Field(
         ..., 
-        ge=0, 
-        le=100, 
-        description="Skor kualitas tidur, skala 0 – 100"
+        ge=0.0, 
+        le=1.0, 
+        description="Skor kualitas tidur, skala 0.0 – 1.0"
     )

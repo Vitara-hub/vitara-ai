@@ -62,17 +62,38 @@ def main():
             class_pred = out_1
             calorie_pred = out_2
             
-        predicted_class_idx = int(np.argmax(class_pred, axis=-1)[0])
+        probabilities = class_pred[0]
+        
+        # Pengaman: Jika output model berupa raw logits, konversi ke softmax
+        if not (0.0 <= np.min(probabilities) <= 1.0) or not (0.9 <= np.sum(probabilities) <= 1.1):
+            exp_probs = np.exp(probabilities - np.max(probabilities))
+            probabilities = exp_probs / exp_probs.sum()
+            
+        predicted_class_idx = int(np.argmax(probabilities))
+        confidence = float(probabilities[predicted_class_idx])
+        
         predicted_class_name = classes[predicted_class_idx] if predicted_class_idx < len(classes) else f"class_{predicted_class_idx}"
         
-        # Denormalize calories (MAX_CALORIES = 1000)
-        MAX_CALORIES = 1000.0
-        estimated_calories = float(calorie_pred[0][0]) * MAX_CALORIES
+        # Cetak debug ke stderr agar tidak mengganggu parsing JSON di stdout
+        sys.stderr.write(f"🔍 Prediksi: {predicted_class_name} | Confidence: {confidence:.4f}\n")
         
-        output = {
-            "foods": [predicted_class_name],
-            "estimated_calories": round(estimated_calories)
-        }
+        # Ambang batas deteksi makanan (98%)
+        CONFIDENCE_THRESHOLD = 0.98
+        
+        if confidence < CONFIDENCE_THRESHOLD:
+            output = {
+                "foods": [],
+                "estimated_calories": 0
+            }
+        else:
+            # Denormalize calories (MAX_CALORIES = 1000)
+            MAX_CALORIES = 1000.0
+            estimated_calories = float(calorie_pred[0][0]) * MAX_CALORIES
+            
+            output = {
+                "foods": [predicted_class_name],
+                "estimated_calories": round(estimated_calories)
+            }
         
         # Only print the JSON payload to stdout
         print(json.dumps(output))

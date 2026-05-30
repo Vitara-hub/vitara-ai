@@ -1,14 +1,16 @@
 # pyrefly: ignore [missing-import]
 from fastapi import APIRouter, UploadFile, File, HTTPException, Form
 from schemas.food import FoodResponse
+# pyrefly: ignore [missing-import]
 import numpy as np
+# pyrefly: ignore [missing-import]
 from PIL import Image
 import io
 import os
 from services.llm_companion import memory_store
 
 # Gunakan ai_edge_litert (lebih ringan untuk Mac/ARM)
-# pyrefly: ignore [missing-import]
+# pyrefly: ignore [missing-import]  
 from ai_edge_litert.interpreter import Interpreter
 
 router = APIRouter(prefix="/predict", tags=["Food"])
@@ -88,7 +90,29 @@ async def predict_food(
             class_pred, calorie_pred = out_1, out_2
             
         # 4. Post-processing hasil
-        predicted_class_idx = int(np.argmax(class_pred, axis=-1)[0])
+        probabilities = class_pred[0]
+        
+        # Pengaman: Jika output model berupa raw logits (tidak menjumlah ke 1.0),
+        # kita konversi ke softmax secara manual agar nilainya berada di range [0, 1]
+        if not (0.0 <= np.min(probabilities) <= 1.0) or not (0.9 <= np.sum(probabilities) <= 1.1):
+            exp_probs = np.exp(probabilities - np.max(probabilities))
+            probabilities = exp_probs / exp_probs.sum()
+            
+        predicted_class_idx = int(np.argmax(probabilities))
+        confidence = float(probabilities[predicted_class_idx])
+        
+        print(f"🔍 Prediksi: {classes[predicted_class_idx] if predicted_class_idx < len(classes) else 'Unknown'} | Confidence: {confidence:.4f}")
+        
+        # Ambang batas deteksi makanan (98%)
+        CONFIDENCE_THRESHOLD = 0.98
+        
+        if confidence < CONFIDENCE_THRESHOLD:
+            # Mengembalikan respon kosong dan melewati penyimpanan memori
+            return FoodResponse(
+                foods=[],
+                estimated_calories=0
+            )
+            
         predicted_class_name = classes[predicted_class_idx] if predicted_class_idx < len(classes) else "Unknown"
         
         # Denormalisasi kalori (MAX_CALORIES = 1000 sesuai training)

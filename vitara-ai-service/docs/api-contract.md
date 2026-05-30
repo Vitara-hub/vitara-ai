@@ -83,20 +83,31 @@ Mengenali jenis makanan dari gambar dan mengestimasi kalori.
 | `image` | `file` | ✅ | File gambar (JPEG/PNG). Max 5MB. |
 | `user_id` | `string` | ❌ | ID unik pengguna untuk menyimpan riwayat kesehatan RAG. |
 
-**Response `200 OK`:**
-
+**Response `200 OK` (Makanan Terdeteksi):**
 
 ```json
 {
-  "foods": ["nasi goreng", "telur dadar"],
+  "foods": ["nasi goreng"],
   "estimated_calories": 520
+}
+```
+
+**Response `200 OK` (Gambar Bukan Makanan / Di Bawah Threshold):**
+
+```json
+{
+  "foods": [],
+  "estimated_calories": 0
 }
 ```
 
 | Field | Type | Keterangan |
 |-------|------|-----------|
-| `foods` | `string[]` | Daftar makanan yang terdeteksi dalam gambar |
-| `estimated_calories` | `integer` | Estimasi total kalori (kkal) |
+| `foods` | `string[]` | Daftar makanan yang terdeteksi dalam gambar (kosong `[]` jika bukan makanan) |
+| `estimated_calories` | `integer` | Estimasi total kalori (kkal) (`0` jika bukan makanan) |
+
+> ⚠️ **Catatan Validasi Gambar:**
+> Endpoint ini menggunakan filter ambang batas keyakinan (*confidence threshold*) sebesar **98% (0.98)**. Jika gambar yang diunggah tidak terdeteksi sebagai makanan dengan tingkat keyakinan ≥ 98%, sistem akan mengembalikan **Response Gambar Bukan Makanan** dan membatalkan perekaman data ke riwayat/memori pengguna.
 
 ---
 

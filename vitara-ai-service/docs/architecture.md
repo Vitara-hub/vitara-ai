@@ -280,12 +280,13 @@ User Message
 
 | Model              | Metrik                   | Target    |
 | ------------------ | ------------------------ | --------- |
-| NLP Stress/Emotion | Accuracy                 | ≥ 85%     |
+| NLP Stress/Emotion | Emotion Accuracy         | ≥ 85%     |
+| NLP Stress/Emotion | Stress MAE (normalized)  | ≤ 0.15    |
 | Food Vision        | Classification Accuracy  | ≥ 85%     |
 | Food Vision        | Calorie MAE (normalized) | ≤ 0.02    |
-| Typing Stress LSTM | AUC-ROC                  | ≥ 0.80    |
-| Sleep Scoring      | MAE (normalized)         | ≤ 0.02    |
-| Health Score       | MAE (normalized)         | ≤ 0.02    |
+| Typing Stress LSTM | Classification Accuracy  | ≥ 85%     |
+| Typing Stress LSTM | Stress MAE (normalized)  | ≤ 0.02    |
+| Sleep Scoring      | MAE (normalized)         | ≤ 0.15    |
 | Semua endpoint API | Latency                  | ≤ 2 detik |
 
 ---

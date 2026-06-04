@@ -26,6 +26,8 @@ vitara-ai-service/
 ├── requirements.txt        # Dependensi Python
 ├── Dockerfile              # Konfigurasi kontainerisasi (Docker)
 ├── .env.example            # Template konfigurasi environment variable
+├── README.md               # Dokumentasi utama (file ini)
+├── README_HF.md            # Dokumentasi Hugging Face Spaces
 │
 ├── routers/                # Definisi rute API (FastAPI Router)
 │   ├── journal.py          # /predict/journal — NLP analisis emosi & stres
@@ -51,18 +53,28 @@ vitara-ai-service/
 │   └── typing.py           # TypingPredictRequest, TypingPredictResponse
 │
 ├── models/                 # Model machine learning (file .onnx/.tflite)
+│   ├── NLP_Rai/            # Direktori eksperimen NLP
+│   ├── health_score_model/ # Model/Data Health Score
 │   ├── nlp_model/          # Model NLP (vitara_nlp_indobert.onnx & folder tokenizer/)
+│   ├── sleep_model/        # Model Analisis Tidur
 │   ├── typing_model/       # Model Typing (typing_stress_lstm.onnx)
-│   └── vision_model/       # Model Vision TFLite + classes.txt
+│   ├── vision_model/       # Model Vision TFLite + classes.txt
+│   ├── custom_callbacks.py # Custom callbacks untuk TensorFlow/Keras
+│   ├── custom_layers.py    # Custom layers untuk TensorFlow/Keras
+│   └── custom_losses.py    # Custom losses untuk TensorFlow/Keras
 │
 ├── scripts/                # Skrip utilitas & pengujian
-│   ├── test_companion.py        # Uji integrasi LLM Companion & ChromaDB
+│   ├── check_memory.py          # Cek isi memori ChromaDB per user
 │   ├── clear_memories.py        # Reset/bersihkan data memori ChromaDB
+│   ├── deploy_hf.sh             # Skrip deploy otomatis ke Hugging Face Spaces
+│   ├── test_companion.py        # Uji integrasi LLM Companion & ChromaDB
 │   └── validate_models.py       # Validasi performa semua model AI
 │
 ├── docs/                   # Dokumentasi teknis
-│   ├── architecture.md          # Arsitektur sistem Vitara AI
+│   ├── Vitara - Your Whole Health, One Place.md # Detail produk Vitara
 │   ├── api-contract.md          # Kontrak API lengkap
+│   ├── architecture.md          # Arsitektur sistem Vitara AI
+│   ├── colab_custom_callbacks_guide.md # Panduan custom callbacks Colab
 │   ├── dataset-contract.md      # Format & spesifikasi dataset
 │   ├── inference-guide.md       # Panduan CLI inference standalone
 │   ├── model-validation-guide.md
@@ -72,7 +84,11 @@ vitara-ai-service/
 │   └── chroma_db/          # Database vektor ChromaDB (persistent)
 │
 ├── sample/                 # Contoh data untuk pengujian inferensi
-└── logs/                   # Log aplikasi & TensorBoard
+├── logs/                   # Log aplikasi & TensorBoard
+├── inference_food.py       # Skrip CLI untuk pengujian inference food
+├── inference_nlp.py        # Skrip CLI untuk pengujian inference NLP
+├── inference_sleep.py      # Skrip CLI untuk pengujian inference sleep
+└── inference_typing.py     # Skrip CLI untuk pengujian inference typing
 ```
 
 ---

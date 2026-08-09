@@ -126,14 +126,14 @@ class LLMCompanionService:
             # We construct a swift recommendations prompt
             rec_prompt = (
                 f"Berdasarkan percakapan berikut, berikan 2 sampai 4 rekomendasi tindakan kesehatan konkret, "
-                f"praktis, dan personal dalam bahasa Indonesia.\n\n"
+                f"praktis, dan personal dalam bahasa yang sama dengan pesan pengguna (Bahasa Indonesia atau Bahasa Inggris).\n\n"
                 f"Pesan Pengguna: {user_message}\n"
                 f"Tanggapan Asisten: {accumulated_response}\n\n"
                 f"Format output harus berupa list JSON berisi string rekomendasi."
             )
             
             class RecommendationsSchema(BaseModel):
-                recommendations: List[str] = Field(description="2 to 4 concrete, actionable health recommendations in Indonesian.")
+                recommendations: List[str] = Field(description="2 to 4 concrete, actionable health recommendations in the user's language (Indonesian or English).")
                 
             rec_response = await self.client.aio.models.generate_content(
                 model=self.model_name,
